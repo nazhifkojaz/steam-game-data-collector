@@ -2,9 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-class SteamChart:
+class SteamCharts:
     def __init__(self, appid: str):
-        """Initialize the SteamChart with the appid of the game.
+        """Initialize the SteamCharts with the appid of the game.
         Args:
             appid (str): The appid of the game to fetch data for.
         """
