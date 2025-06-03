@@ -1,16 +1,22 @@
 [tool.poetry]
-name = "steam-game-data-collector"
+name = "steamgamedata"
 version = "0.1.0"
 description = "a unified tool for collecting steam game data."
 authors = ["nazhifkojaz <nazhifkojaz@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [{include =  "steamgamedata"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.0"
 beautifulsoup4 = "^4.0"
 
+
+[tool.poetry.group.notebooks.dependencies]
+jupyter = "^1.1.1"
+matplotlib = "^3.10.3"
+pandas = "^2.2.3"
 
 [build-system]
 requires = ["poetry-core"]
