@@ -3,12 +3,11 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 
 class SteamCharts:
-    def __init__(self, appid: str):
+    def __init__(self):
         """Initialize the SteamCharts with the appid of the game.
         Args:
             appid (str): The appid of the game to fetch data for.
         """
-        self.appid = appid
         self.base_url = "https://steamcharts.com/app/"
 
     def do_request(self, appid: str) -> BeautifulSoup:
@@ -131,7 +130,11 @@ class SteamCharts:
             list: The active player data from SteamCharts.
         """
         soup = self.do_request(appid)
-        return self._parse_active_player_data(soup)
+        return {
+            "appid": appid,
+            "name": self._parse_game_name(soup),
+            "active_player_data": self._parse_active_player_data(soup)
+        }
     
     def get_all_data(self, appid: str) -> dict:
         """Fetch all game data from SteamCharts based on appid.

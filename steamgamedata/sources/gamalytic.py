@@ -40,17 +40,17 @@ class Gamalytic:
         data = response.json()
 
         return {
-            "appid": data["steamId"],
-            "name": data["name"],
-            "reviews": data["reviews"],
-            "reviews_score": data["reviewsScore"],
-            "followers": data["followers"],
-            "avg_playtime": data["avgPlaytime"],
-            "achievements": data["achievements"],
-            "languages": data["languages"],
-            "developers": data["developers"],
-            "publishers": data["publishers"],
-            "copies_sold": data["copiesSold"],
-            "estimated_revenue": data["revenue"],
-            "estimated_owners": data["owners"]
+            "appid": data.get("steamId", appid),
+            "name": data.get("name", None),
+            "reviews": data.get("reviews", None),
+            "reviews_score": data.get("reviewScore", None),
+            "followers": data.get("followers", None),
+            "avg_playtime": data.get("avgPlaytime", None),
+            "achievements": data.get("achievements", None),
+            "languages": data.get("languages", None),
+            "developers": data.get("developers", None),
+            "publishers": data.get("publishers", None),
+            "copies_sold": data.get("copiesSold", None),
+            "estimated_revenue": data.get("revenue", None),
+            "estimated_owners": data.get("owners", None)
         }

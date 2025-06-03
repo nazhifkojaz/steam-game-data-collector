@@ -45,6 +45,7 @@ class Steam:
             dict: The game data from the Steam store.
         """
 
+        appid = str(appid) # ensure appid is a string
         url = f"https://store.steampowered.com/api/appdetails?appids={appid}&cc={self.region}&l={self.language}"
         response = requests.get(url)
         if response.status_code != 200:
@@ -56,21 +57,24 @@ class Steam:
         if appid not in data or not data[appid]["success"]:
             raise ValueError(f"Failed to fetch data for appid {appid} or appid is not available in the specified region/language.")
         
-        game_data = data[appid]
+        game_data = data[appid]["data"]
 
         return {
             "appid": appid,
-            "name": game_data.get("data", {}).get("name", None),
-            "release_date": game_data.get("data", {}).get("release_date", {}).get("date", None),
-            "developer": game_data.get("data", {}).get("developers", None),
-            "publisher": game_data.get("data", {}).get("publishers", None),
-            "genres": [genre["description"] for genre in game_data.get("data", {}).get("genres", [])],
-            "platforms": [platform for platform in game_data.get("data", {}).get("platforms", {}) if game_data["data"]["platforms"][platform]],
-            "achievements": game_data.get("data", {}).get("achievements", {}).get("total", None),
-            "price_currency": game_data.get("data", {}).get("price_overview", {}).get("currency", None),
-            "price_initial": game_data.get("data", {}).get("price_overview", {}).get("initial", None) / 100 if game_data.get("data", {}).get("price_overview") else None,
-            "price_final": game_data.get("data", {}).get("price_overview", {}).get("final", None) / 100 if game_data.get("data", {}).get("price_overview") else None,
+            "name": game_data.get("name", None),
+            "release_date": game_data.get("release_date", {}).get("date", None),
+            "developer": game_data.get("developers", None),
+            "publisher": game_data.get("publishers", None),
+            "genres": [genre["description"] for genre in game_data.get("genres", [])],
+            "platforms": [
+                platform for platform, is_supported in game_data.get("platform", {}).items() if is_supported
+            ],
+            "achievements": game_data.get("achievements", {}).get("total", None),
+            "price_currency": game_data.get("price_overview", {}).get("currency", None),
+            "price_initial": game_data.get("price_overview", {}).get("initial", None) / 100 if game_data.get("price_overview") else None,
+            "price_final": game_data.get("price_overview", {}).get("final", None) / 100 if game_data.get("price_overview") else None,
             "content_rating": [
-                rating["description"] for rating in game_data.get("data", {}).get("content_descriptors", {}).get("ids", [])
-            ] if game_data.get("data", {}).get("content_descriptors") else None
+                {"rating_type": rating_type, "rating": rating["rating"]}
+                for rating_type, rating in game_data.get("ratings", {}).items()
+            ]
         }
