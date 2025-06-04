@@ -23,10 +23,8 @@ class SteamSpy:
             raise ValueError(f"Data for appid {appid} not found in SteamSpy.")
         
         return {
-            "appid": data["appid"],
-            "name": data["name"],
-            "positive": data["positive"],
-            "negative": data["negative"],
-            "average_forever": data["average_forever"],
-            "average_2weeks": data["average_2weeks"]
+            "appid": data.get("appid", appid),
+            "name": data.get("name", ""),
+            "average_forever": data.get("average_forever", None),
+            "average_2weeks": data.get("average_2weeks", None)
         }

@@ -68,8 +68,8 @@ class SteamCharts:
             raise ValueError("Failed to parse SteamCharts data. No peak data found.")
         
         # get the 24 hour peak and all time peak data
-        result["24h_peak"] = int(peak_data[1].find("span", class_="num").text)
-        result["all_time_peak"] = int(peak_data[2].find("span", class_="num").text)
+        result["active_player_24h"] = int(peak_data[1].find("span", class_="num").text)
+        result["peak_active_player_all_time"] = int(peak_data[2].find("span", class_="num").text)
 
         return result
     
