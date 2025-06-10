@@ -87,7 +87,7 @@ class Steam:
             "price_final": game_data.get("price_overview", {}).get("final", None) / 100 if game_data.get("price_overview") else None,
             "content_rating": [
                 {"rating_type": rating_type, "rating": rating["rating"]}
-                for rating_type, rating in game_data.get("metacritic", {}).items()
+                for rating_type, rating in game_data.get("ratings", {}).items()
             ]
         }
 
