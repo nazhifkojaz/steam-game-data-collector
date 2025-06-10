@@ -68,8 +68,10 @@ class SteamGameData:
 
         for source in sources_to_use:
             data = source.get_game_data(appid)
-            if data:
-                result.update(data)
+            if data.get("status", False):
+                # if the status is true, update the result with the data
+                result.update(data.get("data"))
+
         return result
     
     def _additional_data(self, raw_data: dict) -> dict:
@@ -172,17 +174,13 @@ class SteamGameData:
                 "name": active_player_data.get("name", ""),
             }
 
-            # get the monthly data
-            monthly_data = active_player_data.get("active_player_data", [])
-            if not monthly_data:
-                continue
-
-            for month_data in monthly_data:
-                all_months.add(month_data["month"])
-                game_record.update({
-                    month_data["month"]:month_data["avg_players"]
-                })
-
+            if active_player_data.get("status", False):
+                monthly_data = {
+                    month["month"]: month["avg_players"]
+                    for month in active_player_data.get("active_player_data", [])
+                }
+                game_record.update(monthly_data)
+                all_months.update(monthly_data.keys())
             all_data.append(game_record)
 
         # sort the months chronologically
