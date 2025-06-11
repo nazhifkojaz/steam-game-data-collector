@@ -1,5 +1,6 @@
 import requests
 
+
 class Gamalytic:
     def __init__(self, api_key: str | None = None):
         """Initialize the Gamalytic with an optional API key.
@@ -25,11 +26,7 @@ class Gamalytic:
             dict: The status, game data, and any error message if applicable.
         """
 
-        result = {
-            'status': False,
-            'data': None,
-            'error': None
-        }
+        result = {"status": False, "data": None, "error": None}
 
         url = f"{self.base_url}game/{appid}"
 
@@ -40,17 +37,19 @@ class Gamalytic:
         response = requests.get(url)
         if response.status_code == 404:
             # raise ValueError(f"Game with appid {appid} not found.")
-            result['error'] = f"Game with appid {appid} not found."
+            result["error"] = f"Game with appid {appid} not found."
             return result
         elif response.status_code != 200:
             # raise ConnectionError(f"Failed to connect to Gamalytic API. Status code: {response.status_code}")
-            result['error'] = f"Failed to connect to Gamalytic API. Status code: {response.status_code}"
+            result["error"] = (
+                f"Failed to connect to Gamalytic API. Status code: {response.status_code}"
+            )
             return result
-        
+
         data = response.json()
 
-        result['status'] = True
-        result['data'] = {
+        result["status"] = True
+        result["data"] = {
             "appid": data.get("steamId", appid),
             "name": data.get("name", None),
             "reviews": data.get("reviews", None),
@@ -63,7 +62,7 @@ class Gamalytic:
             "publishers": data.get("publishers", None),
             "copies_sold": data.get("copiesSold", None),
             "estimated_revenue": data.get("revenue", None),
-            "estimated_owners": data.get("owners", None)
+            "estimated_owners": data.get("owners", None),
         }
 
         return result

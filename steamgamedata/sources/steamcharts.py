@@ -1,6 +1,8 @@
+from datetime import datetime
+
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+
 
 class SteamCharts:
     def __init__(self):
@@ -20,7 +22,7 @@ class SteamCharts:
         """
 
         url = f"{self.base_url}{appid}"
-        
+
         # define the headers to simulate a browser request
         headers = {
             "User-Agent": (
@@ -35,22 +37,18 @@ class SteamCharts:
         if response.status_code != 200:
             # raise ConnectionError(f"Failed to connect to SteamCharts API. Status code: {response.status_code}")
             return None
-        
+
         return BeautifulSoup(response.text, "html.parser")
-    
+
     def get_game_data(self, appid: str) -> dict:
         """Parse the game stats from the beautifulSoup object.
         Args:
             appid (str): The appid of the game to fetch data for.
-            
+
         Returns:
             dict: The result containing status, game data, and any error message if applicable.
         """
-        result = {
-            "status": False,
-            "data": None,
-            "error": None
-        }
+        result = {"status": False, "data": None, "error": None}
 
         soup = self._do_request(appid)
 
@@ -58,21 +56,21 @@ class SteamCharts:
             # raise ValueError("Failed to fetch data from SteamCharts.")
             result["error"] = "Failed to fetch data from SteamCharts."
             return result
-        
+
         # get the part where it contains the 24 hour peak and all time peak data
         peak_data = soup.find_all("div", class_="app-stat")
         if not peak_data:
             # raise ValueError("Failed to parse SteamCharts data. No peak data found.")
             result["error"] = "Failed to parse SteamCharts data. No peak data found."
             return result
-        
+
         result["status"] = True
         result["data"] = {
             "active_player_24h": int(peak_data[1].find("span", class_="num").text),
-            "peak_active_player_all_time": int(peak_data[2].find("span", class_="num").text)
+            "peak_active_player_all_time": int(peak_data[2].find("span", class_="num").text),
         }
         return result
-    
+
     def get_active_player_data(self, appid: str) -> dict:
         """Fetch active player data from SteamChart based on its appid.
         Args:
@@ -86,7 +84,7 @@ class SteamCharts:
             "appid": appid,
             "name": None,
             "active_player_data": [],
-            "error": None
+            "error": None,
         }
 
         soup = self._do_request(appid)
@@ -95,8 +93,8 @@ class SteamCharts:
             # raise ValueError("Failed to fetch data from SteamCharts.")
             result["error"] = "Failed to fetch data from SteamCharts."
             return result
-        
-        # get the game name, if they don't have a game name, add an error message.        
+
+        # get the game name, if they don't have a game name, add an error message.
         game_name = soup.find("h1", id="app-title")
         if not game_name:
             # raise ValueError("Failed to parse SteamCharts data. No game name found.")
@@ -104,14 +102,18 @@ class SteamCharts:
         else:
             # if we have a game name, set the game name in the result
             result["name"] = game_name.text
-        
+
         # get the player data table, if it also doesn't exist, extend the error message and return the empty result
         player_data_table = soup.find("table", class_="common-table")
         if not player_data_table:
             # raise ValueError("Failed to parse SteamCharts data. No player data table found.")
-            result["error"] = "Failed to parse SteamCharts data. No player data table found." if not result["error"] else result["error"] + " No player data table found."
+            result["error"] = (
+                "Failed to parse SteamCharts data. No player data table found."
+                if not result["error"]
+                else result["error"] + " No player data table found."
+            )
             return result
-        
+
         # if we have a player data table, set the status to True
         result["status"] = True
 
@@ -128,8 +130,12 @@ class SteamCharts:
                     "month": datetime.strptime(month, "%B %Y").strftime("%Y-%m"),
                     "avg_players": float(avg_players.replace(",", "")),
                     "gain": float(gain.replace(",", "")) if gain not in ("-", "") else None,
-                    "percentage_gain": float(percentage_gain.replace("%", "").replace(",", "").strip()) if percentage_gain not in ("-", "") else 0,
-                    "peak_players": float(peak_players.replace(",", ""))
+                    "percentage_gain": (
+                        float(percentage_gain.replace("%", "").replace(",", "").strip())
+                        if percentage_gain not in ("-", "")
+                        else 0
+                    ),
+                    "peak_players": float(peak_players.replace(",", "")),
                 }
             )
 

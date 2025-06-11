@@ -1,11 +1,20 @@
 import json
-from typing import Literal
-import pandas as pd
 from datetime import datetime
+from typing import Literal
+
+import pandas as pd
+
 import steamgamedata.sources as sources
 
+
 class SteamGameData:
-    def __init__(self, region: str = "us", language: str = "english", steam_api_key: str | None = None, gamalytic_api_key: str | None = None):
+    def __init__(
+        self,
+        region: str = "us",
+        language: str = "english",
+        steam_api_key: str | None = None,
+        gamalytic_api_key: str | None = None,
+    ):
         """Initialize the collector with an optional API key.
         Args:
             region (str): Region for the API request. Default is "us".
@@ -17,7 +26,7 @@ class SteamGameData:
         self.language = language
         self.steam_api_key = steam_api_key
         self.gamalytic_api_key = gamalytic_api_key
-        
+
     def set_region(self, region: str):
         """Set the region for the API request.
         Args:
@@ -54,16 +63,16 @@ class SteamGameData:
         Returns:
             dict: The combined game data from all sources.
         """
-        
+
         # combine the data from all the sources
         ## initialize sources
         sources_to_use = [
             sources.Steam(region=self.region, language=self.language, api_key=self.steam_api_key),
             sources.SteamSpy(),
             sources.Gamalytic(api_key=self.gamalytic_api_key),
-            sources.SteamCharts()
+            sources.SteamCharts(),
         ]
-        
+
         result = {}
 
         for source in sources_to_use:
@@ -73,7 +82,7 @@ class SteamGameData:
                 result.update(data.get("data"))
 
         return result
-    
+
     def _additional_data(self, raw_data: dict) -> dict:
         """Process additional data from the raw data.
         Additional data includes:
@@ -82,88 +91,106 @@ class SteamGameData:
 
         Args:
             raw_data (dict): The raw game data from all sources.
-            
+
         Returns:
             dict: raw data with additional fields.
         """
 
         # calculate days since release
         if "release_date" in raw_data and raw_data["release_date"]:
-            raw_data["days_since_release"] = (datetime.now() - datetime.strptime(raw_data["release_date"], "%b %d, %Y")).days
+            raw_data["days_since_release"] = (
+                datetime.now() - datetime.strptime(raw_data["release_date"], "%b %d, %Y")
+            ).days
         else:
             raw_data["days_since_release"] = None
 
         return raw_data
-    
+
     def _fetch_data(self, appid: str) -> dict:
         """Fetch game data and process additional fields.
         Args:
             appid (str): The appid of the game to fetch data for.
-        
+
         Returns:
             dict: The processed game data with additional fields.
         """
-        
+
         return self._additional_data(self._fetch_raw_data(appid))
-    
-    def get_game_recap(self, appid: str, return_as: Literal["json", "dict"] = "dict") -> dict | str:
+
+    def get_game_recap(
+        self, appid: str, return_as: Literal["json", "dict"] = "dict"
+    ) -> dict | str:
         """Fetch game recap data.
-        Game recap data includes game appid, name, release date, days since released, price and its currency, developer, publisher, genres, positive and negative reviews, review ratio, copies sold, estimated revenue, active players in the last 24 hours and in all time. 
+        Game recap data includes game appid, name, release date, days since released, price and its currency, developer, publisher, genres, positive and negative reviews, review ratio, copies sold, estimated revenue, active players in the last 24 hours and in all time.
         Args:
             appid (str): The appid of the game to fetch data for.
             return_as (str): Format to return the data, either 'json' or 'dict'. Default is 'dict'.
-        
+
         Returns:
             dict | str: The game recap data from Steam and Gamalytic.
         """
-        
+
         game_data = self._fetch_data(appid)
-        
+
         labels_to_return = [
-            "appid", "name", "release_date", "days_since_release", "price_currency", "price_final", "developer", 
-            "publisher", "genres", "copies_sold", "estimated_revenue", "estimated_owners",
-            "avg_playtime", "active_players_24h", "peak_active_players_all_time"
+            "appid",
+            "name",
+            "release_date",
+            "days_since_release",
+            "price_currency",
+            "price_final",
+            "developer",
+            "publisher",
+            "genres",
+            "copies_sold",
+            "estimated_revenue",
+            "estimated_owners",
+            "avg_playtime",
+            "active_players_24h",
+            "peak_active_players_all_time",
         ]
 
         # filter the game data to only include the labels we want
         filtered_data = {key: game_data[key] for key in labels_to_return if key in game_data}
 
         return json.dumps(filtered_data) if return_as == "json" else filtered_data
-    
+
     def get_games_recap(self, appids: list[str]) -> pd.DataFrame:
         """Fetch game recap data for multiple appids.
         Args:
             appids (list[str]): List of appids to fetch data for.
-        
+
         Returns:
             pd.DataFrame: DataFrame containing game recap data for all appids.
         """
-        
+
         if len(appids) <= 1:
             raise ValueError("At least two appids are required to fetch data.")
-        
+
         all_data = []
 
         for appid in appids:
             game_recap = self.get_game_recap(appid, return_as="dict")
             if game_recap:
                 all_data.append(game_recap)
-        
+
         return pd.DataFrame(all_data)
-    
-    def get_games_active_player_data(self, appids: list[str], fill_na_as: int = -1) -> pd.DataFrame:
+
+    def get_games_active_player_data(
+        self, appids: list[str], fill_na_as: int = -1
+    ) -> pd.DataFrame:
         """Fetch active player data for multiple appids.
         Args:
             appids (list[str]): List of appids to fetch active player data for.
             fill_na_as (int): Value to fill NaN values in the DataFrame. Default is -1.
-            
+
         Returns:
             pd.DataFrame: DataFrame containing active player data for all appids.
         """
-        
+
         if len(appids) <= 1:
             raise ValueError("At least two appids are required.")
-        
+
         all_months = set()
         all_data = []
 
@@ -193,7 +220,3 @@ class SteamGameData:
         df.fillna(fill_na_as, inplace=True)
 
         return df
-
-
-        
-    
