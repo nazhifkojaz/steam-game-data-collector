@@ -1,3 +1,11 @@
+---
+name: General Issue
+about: Template for refactoring, feature requests, or other issues.
+title: "[Issue Type]: "
+labels: []
+assignees: []
+---
+
 ### 💡 Summary
 
 Briefly describe the issue...
