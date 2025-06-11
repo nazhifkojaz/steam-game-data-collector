@@ -1,7 +1,9 @@
 import requests
 
+from steamgamedata.sources.base import BaseSource, SourceResult
 
-class Gamalytic:
+
+class Gamalytic(BaseSource):
     def __init__(self, api_key: str | None = None):
         """Initialize the Gamalytic with an optional API key.
         Args:
@@ -17,16 +19,16 @@ class Gamalytic:
         """
         self.api_key = api_key
 
-    def get_game_data(self, appid: str) -> dict:
+    def fetch(self, appid: str) -> SourceResult:
         """Fetch game data from Gamalytic based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
 
         Returns:
-            dict: The status, game data, and any error message if applicable.
+            SourceResult: A dictionary containing the status, data, and any error message if applicable.
         """
 
-        result = {"status": False, "data": None, "error": None}
+        result: SourceResult = {"status": False, "data": None, "error": None}
 
         url = f"{self.base_url}game/{appid}"
 
