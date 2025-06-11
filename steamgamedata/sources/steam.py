@@ -2,6 +2,7 @@ import requests
 
 from steamgamedata.sources.base import BaseSource, SourceResult
 
+
 class Steam(BaseSource):
     def __init__(self, region: str = "us", language: str = "english", api_key: str | None = None):
         """Initialize the Steam with an optional API key.
@@ -48,9 +49,9 @@ class Steam(BaseSource):
 
         appid = str(appid)  # ensure appid is a string
         url = f"https://store.steampowered.com/api/appdetails?appids={appid}&cc={self.region}&l={self.language}"
-        
+
         response = requests.get(url)
-        
+
         if response.status_code != 200:
             # raise ConnectionError(f"Failed to connect to Steam store API. Status code: {response.status_code}")
             result["error"] = (
