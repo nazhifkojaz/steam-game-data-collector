@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, TypedDict, Union
 
 
-class SourceResult(TypedDict):
+class SourceResult(TypedDict, total=False):
     status: bool
     data: Union[dict, list, None]
     error: Optional[str]
