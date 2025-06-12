@@ -74,8 +74,8 @@ class Steam(BaseSource):
             "appid": appid,
             "name": game_data.get("name", None),
             "release_date": game_data.get("release_date", {}).get("date", None),
-            "developer": game_data.get("developers", None),
-            "publisher": game_data.get("publishers", None),
+            "developers": game_data.get("developers", None),
+            "publishers": game_data.get("publishers", None),
             "genres": [genre["description"] for genre in game_data.get("genres", [])],
             "platforms": [
                 platform
