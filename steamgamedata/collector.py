@@ -76,7 +76,7 @@ class SteamGameData:
         result = {}
 
         for source in sources_to_use:
-            data = source.get_game_data(appid)
+            data = source.fetch(appid)
             if data.get("status", False):
                 # if the status is true, update the result with the data
                 result.update(data.get("data"))
@@ -139,15 +139,16 @@ class SteamGameData:
             "days_since_release",
             "price_currency",
             "price_final",
-            "developer",
-            "publisher",
+            "developers",
+            "publishers",
             "genres",
+            "reviews",
             "copies_sold",
             "estimated_revenue",
             "estimated_owners",
             "avg_playtime",
-            "active_players_24h",
-            "peak_active_players_all_time",
+            "active_player_24h",
+            "peak_active_player_all_time",
         ]
 
         # filter the game data to only include the labels we want
@@ -195,7 +196,7 @@ class SteamGameData:
         all_data = []
 
         for appid in appids:
-            active_player_data = sources.SteamCharts().get_active_player_data(appid)
+            active_player_data = sources.SteamCharts().fetch_active_player_data(appid)
             game_record = {
                 "appid": appid,
                 "name": active_player_data.get("name", ""),
