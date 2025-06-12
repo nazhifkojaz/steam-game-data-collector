@@ -4,7 +4,7 @@ from steamgamedata.sources.base import BaseSource, SourceResult
 
 
 class Gamalytic(BaseSource):
-    def __init__(self, api_key: str | None = None):
+    def __init__(self, api_key: str | None = None) -> None:
         """Initialize the Gamalytic with an optional API key.
         Args:
             api_key (str): Optional API key for Gamalytic API.
@@ -12,7 +12,7 @@ class Gamalytic(BaseSource):
         self.api_key = api_key
         self.base_url = "https://api.gamalytic.com/"
 
-    def set_api_key(self, api_key: str):
+    def set_api_key(self, api_key: str) -> None:
         """Set the API key for the Gamalytic API.
         Args:
             api_key (str): API key for Gamalytic API.

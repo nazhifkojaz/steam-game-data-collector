@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Optional, TypedDict, Union
+from typing import Any, Optional, TypedDict, Union
 
 
 class SourceResult(TypedDict, total=False):
     status: bool
-    data: Union[dict, list, None]
+    data: Union[dict[str, Any], list[Any], None]
     error: Optional[str]
 
 

@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -14,7 +14,7 @@ class SteamGameData:
         language: str = "english",
         steam_api_key: str | None = None,
         gamalytic_api_key: str | None = None,
-    ):
+    ) -> None:
         """Initialize the collector with an optional API key.
         Args:
             region (str): Region for the API request. Default is "us".
@@ -27,35 +27,35 @@ class SteamGameData:
         self.steam_api_key = steam_api_key
         self.gamalytic_api_key = gamalytic_api_key
 
-    def set_region(self, region: str):
+    def set_region(self, region: str) -> None:
         """Set the region for the API request.
         Args:
             region (str): Region for the API request.
         """
         self.region = region
 
-    def set_language(self, language: str):
+    def set_language(self, language: str) -> None:
         """Set the language for the API request.
         Args:
             language (str): Language for the API request.
         """
         self.language = language
 
-    def set_steam_api_key(self, steam_api_key: str):
+    def set_steam_api_key(self, steam_api_key: str) -> None:
         """Set the API key for the Steam API.
         Args:
             steam_api_key (str): API key for Steam API.
         """
         self.steam_api_key = steam_api_key
 
-    def set_gamalytic_api_key(self, gamalytic_api_key: str):
+    def set_gamalytic_api_key(self, gamalytic_api_key: str) -> None:
         """Set the API key for the Gamalytic API.
         Args:
             gamalytic_api_key (str): API key for Gamalytic API.
         """
         self.gamalytic_api_key = gamalytic_api_key
 
-    def _fetch_raw_data(self, appid: str) -> dict:
+    def _fetch_raw_data(self, appid: str) -> dict[str, Any]:
         """Fetch game data from all sources based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -73,17 +73,17 @@ class SteamGameData:
             sources.SteamCharts(),
         ]
 
-        result = {}
+        result: dict[str, Any] = {}
 
         for source in sources_to_use:
             data = source.fetch(appid)
             if data.get("status", False):
                 # if the status is true, update the result with the data
-                result.update(data.get("data"))
+                result.update(data.get("data"))  # type: ignore[arg-type]
 
         return result
 
-    def _additional_data(self, raw_data: dict) -> dict:
+    def _additional_data(self, raw_data: dict[str, Any]) -> dict[str, Any]:
         """Process additional data from the raw data.
         Additional data includes:
         - days_since_release: Number of days since the game was released.
@@ -106,7 +106,7 @@ class SteamGameData:
 
         return raw_data
 
-    def _fetch_data(self, appid: str) -> dict:
+    def _fetch_data(self, appid: str) -> dict[str, Any]:
         """Fetch game data and process additional fields.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -119,7 +119,7 @@ class SteamGameData:
 
     def get_game_recap(
         self, appid: str, return_as: Literal["json", "dict"] = "dict"
-    ) -> dict | str:
+    ) -> dict[str, Any] | str:
         """Fetch game recap data.
         Game recap data includes game appid, name, release date, days since released, price and its currency, developer, publisher, genres, positive and negative reviews, review ratio, copies sold, estimated revenue, active players in the last 24 hours and in all time.
         Args:
@@ -192,7 +192,7 @@ class SteamGameData:
         if len(appids) <= 1:
             raise ValueError("At least two appids are required.")
 
-        all_months = set()
+        all_months: set[str] = set()
         all_data = []
 
         for appid in appids:

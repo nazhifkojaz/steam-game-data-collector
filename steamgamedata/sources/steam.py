@@ -15,21 +15,21 @@ class Steam(BaseSource):
         self.language = language
         self.api_key = api_key
 
-    def set_region(self, region: str):
+    def set_region(self, region: str) -> None:
         """Set the region for the Steam API.
         Args:
             region (str): Region for the game data.
         """
         self.region = region
 
-    def set_language(self, language: str):
+    def set_language(self, language: str) -> None:
         """Set the language for the Steam API.
         Args:
             language (str): Language for the API request.
         """
         self.language = language
 
-    def set_api_key(self, api_key: str):
+    def set_api_key(self, api_key: str) -> None:
         """Set the API key for the Steam API.
         Args:
             api_key (str): API key for Steam API.

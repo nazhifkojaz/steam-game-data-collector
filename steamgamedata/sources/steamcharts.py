@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 import requests
 from bs4 import BeautifulSoup
@@ -9,11 +10,11 @@ from steamgamedata.sources.base import BaseSource, SourceResult
 class SteamCharts(BaseSource):
     """SteamCharts source for fetching active player data from SteamCharts website."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the SteamCharts source."""
         self.base_url = "https://steamcharts.com/app/"
 
-    def _make_request(self, appid: str) -> BeautifulSoup:
+    def _make_request(self, appid: str) -> BeautifulSoup | None:
         """Perform a GET request to the SteamCharts API and return the BeautifulSoup object.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -66,12 +67,12 @@ class SteamCharts(BaseSource):
 
         result["status"] = True
         result["data"] = {
-            "active_player_24h": int(peak_data[1].find("span", class_="num").text),
-            "peak_active_player_all_time": int(peak_data[2].find("span", class_="num").text),
+            "active_player_24h": int(peak_data[1].find("span", class_="num").text),  # type: ignore[union-attr,call-arg]
+            "peak_active_player_all_time": int(peak_data[2].find("span", class_="num").text),  # type: ignore[union-attr,call-arg]
         }
         return result
 
-    def fetch_active_player_data(self, appid: str) -> dict:
+    def fetch_active_player_data(self, appid: str) -> dict[str, Any]:
         """Fetch active player data from SteamChart based on its appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -79,7 +80,7 @@ class SteamCharts(BaseSource):
         Returns:
             dict: The result containing the status, appid, name, active player data, and any error message if applicable.
         """
-        result = {
+        result: dict[str, Any] = {
             "status": False,
             "appid": appid,
             "name": None,
@@ -118,7 +119,7 @@ class SteamCharts(BaseSource):
         result["status"] = True
 
         # get the player data rows, skipping the first two header rows
-        player_data_rows = player_data_table.find_all("tr")[2:]
+        player_data_rows = player_data_table.find_all("tr")[2:]  # type: ignore[attr-defined]
 
         for row in player_data_rows:
             cols = [col.text.strip() for col in row.find_all("td")]

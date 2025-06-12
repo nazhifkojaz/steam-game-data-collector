@@ -1,10 +1,10 @@
-from steamgamedata.sources.base import BaseSource, SourceResult
-
 import requests
+
+from steamgamedata.sources.base import BaseSource, SourceResult
 
 
 class SteamSpy(BaseSource):
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the SteamSpy with the base URL."""
         self.base_url = "https://steamspy.com/api.php"
 
@@ -12,7 +12,7 @@ class SteamSpy(BaseSource):
         """Fetch game data from SteamSpy based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
-            
+
         Returns:
             SourceResult: A dictionary containing the status, data, and any error message if applicable.
         """
