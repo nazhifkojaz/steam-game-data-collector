@@ -1,7 +1,9 @@
 import requests
 
+from steamgamedata.sources.base import BaseSource, SourceResult
 
-class Steam:
+
+class Steam(BaseSource):
     def __init__(self, region: str = "us", language: str = "english", api_key: str | None = None):
         """Initialize the Steam with an optional API key.
         Args:
@@ -13,43 +15,43 @@ class Steam:
         self.language = language
         self.api_key = api_key
 
-    def set_region(self, region: str):
+    def set_region(self, region: str) -> None:
         """Set the region for the Steam API.
         Args:
             region (str): Region for the game data.
         """
         self.region = region
 
-    def set_language(self, language: str):
+    def set_language(self, language: str) -> None:
         """Set the language for the Steam API.
         Args:
             language (str): Language for the API request.
         """
         self.language = language
 
-    def set_api_key(self, api_key: str):
+    def set_api_key(self, api_key: str) -> None:
         """Set the API key for the Steam API.
         Args:
             api_key (str): API key for Steam API.
         """
         self.api_key = api_key
 
-    def get_game_data(self, appid: str) -> dict:
+    def fetch(self, appid: str) -> SourceResult:
         """Fetch game data from steam store based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
-            region (str): Region for the game data. Default is "us".
-            language (str): Language for the API request. Default is "english".
 
         Returns:
-            dict: The status, game data, and any error message if applicable.
+            SourceResult: A dictionary containing the status, data, and any error message if applicable.
         """
 
-        result = {"status": False, "data": None, "error": None}
+        result: SourceResult = {"status": False, "data": None, "error": None}
 
         appid = str(appid)  # ensure appid is a string
         url = f"https://store.steampowered.com/api/appdetails?appids={appid}&cc={self.region}&l={self.language}"
+
         response = requests.get(url)
+
         if response.status_code != 200:
             # raise ConnectionError(f"Failed to connect to Steam store API. Status code: {response.status_code}")
             result["error"] = (
@@ -66,16 +68,14 @@ class Steam:
                 f"Failed to fetch data for appid {appid} or appid is not available in the specified region/language."
             )
             return result
-
         game_data = data[appid]["data"]
-
         result["status"] = True
         result["data"] = {
             "appid": appid,
             "name": game_data.get("name", None),
             "release_date": game_data.get("release_date", {}).get("date", None),
-            "developer": game_data.get("developers", None),
-            "publisher": game_data.get("publishers", None),
+            "developers": game_data.get("developers", None),
+            "publishers": game_data.get("publishers", None),
             "genres": [genre["description"] for genre in game_data.get("genres", [])],
             "platforms": [
                 platform
@@ -99,5 +99,4 @@ class Steam:
                 for rating_type, rating in game_data.get("ratings", {}).items()
             ],
         }
-
         return result
