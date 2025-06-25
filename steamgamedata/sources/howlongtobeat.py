@@ -5,18 +5,19 @@
 
 import json
 import re
+from typing import Any
 
 import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from steamgamedata.sources.base import BaseSource
+from steamgamedata.sources.base import BaseSource, SourceResult
 
 
 class SearchInformation:
     """Class to hold search information extracted from the HLTB script."""
 
-    def __init__(self, title_headers: dict) -> None:
+    def __init__(self, title_headers: dict[str, Any]) -> None:
         self.api_key = None
         self.search_url = None
         self._get_search_informations(title_headers=title_headers)
@@ -75,7 +76,7 @@ class SearchInformation:
         # Unable to find :(
         return None
 
-    def _get_search_informations(self, title_headers) -> None:
+    def _get_search_informations(self, title_headers: dict[str, Any]) -> None:
         response = requests.get(HowLongToBeat.BASE_URL, headers=title_headers, timeout=60)
 
         if response.status_code == 200 and response.text:
@@ -86,7 +87,7 @@ class SearchInformation:
             non_matching_scripts = []
 
             for script in scripts:
-                src = script.get("src")
+                src = script.get("src")  # type: ignore[union-attr]
                 if src:
                     if "_app-" in src:
                         matching_scripts.append(src)
@@ -94,13 +95,13 @@ class SearchInformation:
                         non_matching_scripts.append(src)
 
             # look for scripts that provide the api key
-            self._process_script(matching_scripts, title_headers=title_headers)
+            self._process_script(matching_scripts, title_headers=title_headers)  # type: ignore[arg-type]
 
             # if we still don't have the api key, try to get it from the other scripts
             if self.api_key is None:
-                self._process_script(non_matching_scripts, title_headers=title_headers)
+                self._process_script(non_matching_scripts, title_headers=title_headers)  # type: ignore[arg-type]
 
-    def _process_script(self, script_urls: list[str], title_headers: dict) -> None:
+    def _process_script(self, script_urls: list[str], title_headers: dict[str, Any]) -> None:
         """Process the script content to extract API key and search URL.
         Args:
             script_urls (list[str]): List of script URLs to process.
@@ -109,8 +110,8 @@ class SearchInformation:
             script_url = HowLongToBeat.BASE_URL + script_url
             script_response = requests.get(script_url, headers=title_headers, timeout=60)
             if script_response.status_code == 200 and script_response.text:
-                self.api_key = self._extract_api_from_script(script_response.text)
-                self.search_url = self._extract_search_url_script(script_response.text)
+                self.api_key = self._extract_api_from_script(script_response.text)  # type: ignore[assignment]
+                self.search_url = self._extract_search_url_script(script_response.text)  # type: ignore[assignment]
                 if self.api_key:
                     break
 
@@ -120,6 +121,47 @@ class HowLongToBeat(BaseSource):
 
     BASE_URL = "https://howlongtobeat.com/"
     REFERER_HEADER = BASE_URL
+
+    def fetch(self, game_name: str) -> SourceResult:
+        """Fetch game completion data from HowLongToBeat based on game name.
+        Args:
+            game_name (str): The name of the game to search for.
+
+        Returns:
+            SourceResult: A dictionary containing the status, completion time data, and any error message if applicable.
+        """
+
+        result: SourceResult = {"status": False, "data": None, "error": None}
+
+        search_result = self._make_request(game_name)
+        search_result = json.loads(search_result) if search_result else None
+
+        # if the search result is None, the request failed
+        if not search_result:
+            result["error"] = "Failed to fetch data from HowLongToBeat."
+            return result
+
+        # if the search result count is 0, then the game is not found
+        if search_result["count"] == 0:
+            result["error"] = "Game is not found on HowLongToBeat."
+            return result
+
+        # if not, then get the first data in the search result
+        result["status"] = True
+
+        # taking the first result because the assumption of using the exact name of the game
+        # since we are feeding the game name directly from steam
+        result["data"] = {
+            "name": game_name,
+            "main_story": search_result["data"][0]["comp_main"],
+            "main_plus_sides": search_result["data"][0]["comp_plus"],
+            "completionist": search_result["data"][0]["comp_100"],
+            "all_styles": search_result["data"][0]["comp_all"],
+            "coop": search_result["data"][0]["invested_co"],
+            "pvp": search_result["data"][0]["invested_mp"],
+        }
+
+        return result
 
     def _make_request(self, game_name: str, page: int = 1) -> str | None:
         """Send a web request to HowLongToBeat to fetch game data.
@@ -134,6 +176,10 @@ class HowLongToBeat(BaseSource):
         title_headers = HowLongToBeat._get_title_request_headers()
         search_headers = HowLongToBeat._get_search_request_headers()
         search_info_data = SearchInformation(title_headers=title_headers)
+
+        # if the api key is not found, then we cannot proceed
+        if not search_info_data.api_key:
+            return None
 
         search_url = HowLongToBeat.BASE_URL + "api/s/"
         if search_info_data.search_url:
@@ -158,14 +204,14 @@ class HowLongToBeat(BaseSource):
         return None
 
     @staticmethod
-    def _get_title_request_headers() -> dict:
+    def _get_title_request_headers() -> dict[str, Any]:
         """Get headers for the title request."""
         ua = UserAgent()
         headers = {"User-Agent": ua.random, "referer": HowLongToBeat.REFERER_HEADER}
         return headers
 
     @staticmethod
-    def _get_search_request_headers() -> dict:
+    def _get_search_request_headers() -> dict[str, Any]:
         ua = UserAgent()
         headers = {
             "content-type": "application/json",
@@ -178,7 +224,7 @@ class HowLongToBeat(BaseSource):
 
     @staticmethod
     def _generate_data_payload(
-        game_name: str, page: int, search_info: SearchInformation = None
+        game_name: str, page: int, search_info: SearchInformation | None = None
     ) -> str:
         """Generate data payload
         Args:
