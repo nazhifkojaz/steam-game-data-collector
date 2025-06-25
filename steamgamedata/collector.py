@@ -66,20 +66,32 @@ class SteamGameData:
 
         # combine the data from all the sources
         ## initialize sources
-        sources_to_use = [
+        sources_using_id = [
             sources.Steam(region=self.region, language=self.language, api_key=self.steam_api_key),
             sources.SteamSpy(),
             sources.Gamalytic(api_key=self.gamalytic_api_key),
             sources.SteamCharts(),
         ]
+        sources_using_name = [
+            sources.HowLongToBeat(),
+        ]
 
         result: dict[str, Any] = {}
 
-        for source in sources_to_use:
+        for source in sources_using_id:
             data = source.fetch(appid)
             if data.get("status", False):
                 # if the status is true, update the result with the data
                 result.update(data.get("data"))  # type: ignore[arg-type]
+
+        # get the game name from the steam source
+        game_name = result.get("name", None)
+        if game_name:  # skip if t he game name is None
+            for source in sources_using_name:
+                data = source.fetch(result["name"])
+                if data.get("status", False):
+                    # if the status is true, update the result with the data
+                    result.update(data.get("data"))  # type: ignore[arg-type]
 
         return result
 
@@ -146,6 +158,12 @@ class SteamGameData:
             "copies_sold",
             "estimated_revenue",
             "estimated_owners",
+            "main_story",
+            "main_plus_sides",
+            "completionist",
+            "all_styles",
+            "coop",
+            "pvp",
             "avg_playtime",
             "active_player_24h",
             "peak_active_player_all_time",
