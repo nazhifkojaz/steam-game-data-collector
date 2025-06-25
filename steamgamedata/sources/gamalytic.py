@@ -1,8 +1,10 @@
 import requests
 
+from steamgamedata.sources.base import BaseSource, SourceResult
 
-class Gamalytic:
-    def __init__(self, api_key: str | None = None):
+
+class Gamalytic(BaseSource):
+    def __init__(self, api_key: str | None = None) -> None:
         """Initialize the Gamalytic with an optional API key.
         Args:
             api_key (str): Optional API key for Gamalytic API.
@@ -10,23 +12,23 @@ class Gamalytic:
         self.api_key = api_key
         self.base_url = "https://api.gamalytic.com/"
 
-    def set_api_key(self, api_key: str):
+    def set_api_key(self, api_key: str) -> None:
         """Set the API key for the Gamalytic API.
         Args:
             api_key (str): API key for Gamalytic API.
         """
         self.api_key = api_key
 
-    def get_game_data(self, appid: str) -> dict:
+    def fetch(self, appid: str) -> SourceResult:
         """Fetch game data from Gamalytic based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
 
         Returns:
-            dict: The status, game data, and any error message if applicable.
+            SourceResult: A dictionary containing the status, data, and any error message if applicable.
         """
 
-        result = {"status": False, "data": None, "error": None}
+        result: SourceResult = {"status": False, "data": None, "error": None}
 
         url = f"{self.base_url}game/{appid}"
 
@@ -51,15 +53,15 @@ class Gamalytic:
         result["status"] = True
         result["data"] = {
             "appid": data.get("steamId", appid),
-            "name": data.get("name", None),
-            "reviews": data.get("reviews", None),
-            "reviews_score": data.get("reviewScore", None),
+            # "name": data.get("name", None),
+            "reviews": data.get("reviewsSteam", None),
+            # "reviews_score": data.get("reviewScore", None),
             "followers": data.get("followers", None),
             "avg_playtime": data.get("avgPlaytime", None),
             "achievements": data.get("achievements", None),
             "languages": data.get("languages", None),
-            "developers": data.get("developers", None),
-            "publishers": data.get("publishers", None),
+            # "developers": data.get("developers", None),
+            # "publishers": data.get("publishers", None),
             "copies_sold": data.get("copiesSold", None),
             "estimated_revenue": data.get("revenue", None),
             "estimated_owners": data.get("owners", None),
