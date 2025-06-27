@@ -5,6 +5,7 @@ from typing import Any, Literal
 import pandas as pd
 
 import steamgamedata.sources as sources
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class SteamGameData:
@@ -14,6 +15,8 @@ class SteamGameData:
         language: str = "english",
         steam_api_key: str | None = None,
         gamalytic_api_key: str | None = None,
+        calls: int = 60,
+        period: int = 60,
     ) -> None:
         """Initialize the collector with an optional API key.
         Args:
@@ -21,39 +24,82 @@ class SteamGameData:
             language (str): Language for the API request. Default is "english".
             steam_api_key (str): Optional API key for Steam API.
             gamalytic_api_key (str): Optional API key for Gamalytic API.
+            calls (int): Max number of API calls allowed per period. Default is 60.
+            period (int): Time period in seconds for the rate limit. Default is 60.
         """
-        self.region = region
-        self.language = language
-        self.steam_api_key = steam_api_key
-        self.gamalytic_api_key = gamalytic_api_key
+        self._region = region
+        self._language = language
+        self._steam_api_key = steam_api_key
+        self._gamalytic_api_key = gamalytic_api_key
+        self.calls = calls
+        self.period = period
 
-    def set_region(self, region: str) -> None:
-        """Set the region for the API request.
-        Args:
-            region (str): Region for the API request.
-        """
-        self.region = region
+        self._init_sources()
 
-    def set_language(self, language: str) -> None:
-        """Set the language for the API request.
-        Args:
-            language (str): Language for the API request.
-        """
-        self.language = language
+    def _init_sources(self) -> None:
+        """Initialize the sources with the current settings."""
+        self.steam = sources.Steam(
+            region=self.region, language=self.language, api_key=self.steam_api_key
+        )
+        self.steamspy = sources.SteamSpy()
+        self.gamalytic = sources.Gamalytic(api_key=self.gamalytic_api_key)
+        self.steamcharts = sources.SteamCharts()
+        self.howlongtobeat = sources.HowLongToBeat()
 
-    def set_steam_api_key(self, steam_api_key: str) -> None:
-        """Set the API key for the Steam API.
-        Args:
-            steam_api_key (str): API key for Steam API.
-        """
-        self.steam_api_key = steam_api_key
+    def id_based_sources(self) -> list[sources.BaseSource]:
+        """Get the list of sources that uses appid to fetch data."""
+        return [
+            self.steam,
+            self.steamspy,
+            self.gamalytic,
+            self.steamcharts,
+        ]
 
-    def set_gamalytic_api_key(self, gamalytic_api_key: str) -> None:
-        """Set the API key for the Gamalytic API.
-        Args:
-            gamalytic_api_key (str): API key for Gamalytic API.
-        """
-        self.gamalytic_api_key = gamalytic_api_key
+    def name_based_sources(self) -> list[sources.BaseSource]:
+        """Get the list of sources that uses game name to fetch data."""
+        return [
+            self.howlongtobeat,
+        ]
+
+    @property
+    def region(self) -> str:
+        return self._region
+
+    @region.setter
+    def region(self, value: str) -> None:
+        if self._region != value:
+            self._region = value
+            self.steam.region = value
+
+    @property
+    def language(self) -> str:
+        return self._language
+
+    @language.setter
+    def language(self, value: str) -> None:
+        if self._language != value:
+            self._language = value
+            self.steam.language = value
+
+    @property
+    def steam_api_key(self) -> str | None:
+        return self._steam_api_key
+
+    @steam_api_key.setter
+    def steam_api_key(self, value: str) -> None:
+        if self._steam_api_key != value:
+            self._steam_api_key = value
+            self.steam.api_key = value
+
+    @property
+    def gamalytic_api_key(self) -> str | None:
+        return self._gamalytic_api_key
+
+    @gamalytic_api_key.setter
+    def gamalytic_api_key(self, value: str) -> None:
+        if self._gamalytic_api_key != value:
+            self._gamalytic_api_key = value
+            self.gamalytic.api_key = value
 
     def _fetch_raw_data(self, appid: str) -> dict[str, Any]:
         """Fetch game data from all sources based on appid.
@@ -63,22 +109,10 @@ class SteamGameData:
         Returns:
             dict: The combined game data from all sources.
         """
-
-        # combine the data from all the sources
-        ## initialize sources
-        sources_using_id = [
-            sources.Steam(region=self.region, language=self.language, api_key=self.steam_api_key),
-            sources.SteamSpy(),
-            sources.Gamalytic(api_key=self.gamalytic_api_key),
-            sources.SteamCharts(),
-        ]
-        sources_using_name = [
-            sources.HowLongToBeat(),
-        ]
-
         result: dict[str, Any] = {}
+        result["appid"] = appid  # add the appid to the result
 
-        for source in sources_using_id:
+        for source in self.id_based_sources():
             data = source.fetch(appid)
             if data.get("status", False):
                 # if the status is true, update the result with the data
@@ -86,8 +120,8 @@ class SteamGameData:
 
         # get the game name from the steam source
         game_name = result.get("name", None)
-        if game_name:  # skip if t he game name is None
-            for source in sources_using_name:
+        if game_name:  # skip if the game name is None
+            for source in self.name_based_sources():
                 data = source.fetch(result["name"])
                 if data.get("status", False):
                     # if the status is true, update the result with the data
@@ -118,6 +152,7 @@ class SteamGameData:
 
         return raw_data
 
+    @logged_rate_limited()
     def _fetch_data(self, appid: str) -> dict[str, Any]:
         """Fetch game data and process additional fields.
         Args:
