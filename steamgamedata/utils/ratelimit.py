@@ -1,9 +1,9 @@
 import logging
 import time
 from functools import wraps
+from typing import Any, Callable
 
 from ratelimit import RateLimitException, limits
-from typing import Any, Callable
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ def logged_rate_limited(
             actual_period = period if period is not None else getattr(self, "period", 60)
 
             @logged_sleep_and_retry
-            @limits(calls=actual_calls, period=actual_period) # type: ignore[misc]
+            @limits(calls=actual_calls, period=actual_period)  # type: ignore[misc]
             def limited_execution() -> Any:
                 return func(self, *args, **kwargs)
 

@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from steamgamedata.sources.base import BaseSource, SourceResult
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class SteamCharts(BaseSource):
@@ -40,6 +41,7 @@ class SteamCharts(BaseSource):
 
         return BeautifulSoup(response.text, "html.parser")
 
+    @logged_rate_limited(calls=60, period=60)  # web scrape -> 60 requests per minute to be polite
     def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
         """Fetch active player data from SteamCharts based on its appid.
         Args:
@@ -88,6 +90,7 @@ class SteamCharts(BaseSource):
         }
         return result
 
+    @logged_rate_limited(calls=60, period=60)  # web scrape -> 60 requests per minute to be polite
     def fetch_active_player_data(self, appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch active player data from SteamChart based on its appid.
         Args:

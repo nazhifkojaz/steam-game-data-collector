@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 from steamgamedata.sources.base import BaseSource, SourceResult
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class SearchInformation:
@@ -122,6 +123,7 @@ class HowLongToBeat(BaseSource):
     BASE_URL = "https://howlongtobeat.com/"
     REFERER_HEADER = BASE_URL
 
+    @logged_rate_limited(calls=60, period=60)  # web scrape -> 60 requests per minute to be polite
     def fetch(self, game_name: str, verbose: bool = True) -> SourceResult:
         """Fetch game completion data from HowLongToBeat based on game name.
         Args:

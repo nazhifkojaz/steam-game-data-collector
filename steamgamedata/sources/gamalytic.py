@@ -1,6 +1,7 @@
 import requests
 
 from steamgamedata.sources.base import BaseSource, SourceResult
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class Gamalytic(BaseSource):
@@ -21,6 +22,7 @@ class Gamalytic(BaseSource):
         if self._api_key != value:
             self._api_key = value
 
+    @logged_rate_limited(calls=500, period=24 * 60 * 60)  # 500 requests per day
     def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
         """Fetch game data from Gamalytic based on appid.
         Args:

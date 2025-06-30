@@ -1,6 +1,7 @@
 import requests
 
 from steamgamedata.sources.base import BaseSource, SourceResult
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class SteamSpy(BaseSource):
@@ -8,6 +9,7 @@ class SteamSpy(BaseSource):
         """Initialize the SteamSpy with the base URL."""
         self.base_url = "https://steamspy.com/api.php"
 
+    @logged_rate_limited(calls=60, period=60)  # 60 requests per minute.
     def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
         """Fetch game data from SteamSpy based on appid.
         Args:

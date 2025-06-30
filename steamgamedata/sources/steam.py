@@ -1,6 +1,7 @@
 import requests
 
 from steamgamedata.sources.base import BaseSource, SourceResult
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class Steam(BaseSource):
@@ -57,6 +58,9 @@ class Steam(BaseSource):
         if self._api_key != value:
             self._api_key = value
 
+    @logged_rate_limited(
+        calls=60, period=60
+    )  # no official rate limit, but 60 requests per minute is a good practice.
     def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
         """Fetch game data from steam store based on appid.
         Args:
