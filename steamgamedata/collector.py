@@ -101,7 +101,7 @@ class SteamGameData:
             self._gamalytic_api_key = value
             self.gamalytic.api_key = value
 
-    def _fetch_raw_data(self, appid: str) -> dict[str, Any]:
+    def _fetch_raw_data(self, appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch game data from all sources based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -113,8 +113,8 @@ class SteamGameData:
         result["appid"] = appid  # add the appid to the result
 
         for source in self.id_based_sources():
-            data = source.fetch(appid)
-            if data.get("status", False):
+            data = source.fetch(appid, verbose=verbose)
+            if data.get("success", False):
                 # if the status is true, update the result with the data
                 result.update(data.get("data"))  # type: ignore[arg-type]
 
@@ -122,8 +122,8 @@ class SteamGameData:
         game_name = result.get("name", None)
         if game_name:  # skip if the game name is None
             for source in self.name_based_sources():
-                data = source.fetch(result["name"])
-                if data.get("status", False):
+                data = source.fetch(result["name"], verbose=verbose)
+                if data.get("success", False):
                     # if the status is true, update the result with the data
                     result.update(data.get("data"))  # type: ignore[arg-type]
 
@@ -153,7 +153,7 @@ class SteamGameData:
         return raw_data
 
     @logged_rate_limited()
-    def _fetch_data(self, appid: str) -> dict[str, Any]:
+    def _fetch_data(self, appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch game data and process additional fields.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -162,10 +162,10 @@ class SteamGameData:
             dict: The processed game data with additional fields.
         """
 
-        return self._additional_data(self._fetch_raw_data(appid))
+        return self._additional_data(self._fetch_raw_data(appid, verbose=verbose))
 
     def get_game_recap(
-        self, appid: str, return_as: Literal["json", "dict"] = "dict"
+        self, appid: str, return_as: Literal["json", "dict"] = "dict", verbose: bool = True
     ) -> dict[str, Any] | str:
         """Fetch game recap data.
         Game recap data includes game appid, name, release date, days since released, price and its currency, developer, publisher, genres, positive and negative reviews, review ratio, copies sold, estimated revenue, active players in the last 24 hours and in all time.
@@ -177,7 +177,7 @@ class SteamGameData:
             dict | str: The game recap data from Steam and Gamalytic.
         """
 
-        game_data = self._fetch_data(appid)
+        game_data = self._fetch_data(appid, verbose=verbose)
 
         labels_to_return = [
             "appid",
@@ -209,7 +209,7 @@ class SteamGameData:
 
         return json.dumps(filtered_data) if return_as == "json" else filtered_data
 
-    def get_games_recap(self, appids: list[str]) -> pd.DataFrame:
+    def get_games_recap(self, appids: list[str], verbose: bool = True) -> pd.DataFrame:
         """Fetch game recap data for multiple appids.
         Args:
             appids (list[str]): List of appids to fetch data for.
@@ -224,14 +224,14 @@ class SteamGameData:
         all_data = []
 
         for appid in appids:
-            game_recap = self.get_game_recap(appid, return_as="dict")
+            game_recap = self.get_game_recap(appid, return_as="dict", verbose=verbose)
             if game_recap:
                 all_data.append(game_recap)
 
         return pd.DataFrame(all_data)
 
     def get_games_active_player_data(
-        self, appids: list[str], fill_na_as: int = -1
+        self, appids: list[str], fill_na_as: int = -1, verbose: bool = True
     ) -> pd.DataFrame:
         """Fetch active player data for multiple appids.
         Args:
@@ -249,13 +249,15 @@ class SteamGameData:
         all_data = []
 
         for appid in appids:
-            active_player_data = sources.SteamCharts().fetch_active_player_data(appid)
+            active_player_data = sources.SteamCharts().fetch_active_player_data(
+                appid, verbose=verbose
+            )
             game_record = {
                 "appid": appid,
                 "name": active_player_data.get("name", ""),
             }
 
-            if active_player_data.get("status", False):
+            if active_player_data.get("success", False):
                 monthly_data = {
                     month["month"]: month["avg_players"]
                     for month in active_player_data.get("active_player_data", [])

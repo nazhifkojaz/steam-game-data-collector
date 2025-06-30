@@ -139,7 +139,7 @@ class HowLongToBeat(BaseSource):
             verbose=verbose,
         )
 
-        result: SourceResult = {"status": False, "data": None, "error": ""}
+        result: SourceResult = {"success": False, "data": None, "error": ""}
 
         search_result = self._make_request(game_name)
         search_result = json.loads(search_result) if search_result else None
@@ -165,7 +165,7 @@ class HowLongToBeat(BaseSource):
             return result
 
         # if not, then get the first data in the search result
-        result["status"] = True
+        result["success"] = True
 
         # taking the first result because the assumption of using the exact name of the game
         # since we are feeding the game name directly from steam

@@ -76,7 +76,7 @@ class Steam(BaseSource):
             verbose=verbose,
         )
 
-        result: SourceResult = {"status": False, "data": None, "error": ""}
+        result: SourceResult = {"success": False, "data": None, "error": ""}
 
         appid = str(appid)  # ensure appid is a string
         url = f"https://store.steampowered.com/api/appdetails?appids={appid}&cc={self.region}&l={self.language}"
@@ -111,7 +111,7 @@ class Steam(BaseSource):
             return result
 
         game_data = data[appid]["data"]
-        result["status"] = True
+        result["success"] = True
         result["data"] = {
             "appid": appid,
             "name": game_data.get("name", None),

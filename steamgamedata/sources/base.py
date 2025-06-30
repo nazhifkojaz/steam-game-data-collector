@@ -4,7 +4,7 @@ from typing import Any, TypedDict
 
 
 class SourceResult(TypedDict, total=False):
-    status: bool
+    success: bool
     data: dict[str, Any] | list[Any] | None
     error: str
 

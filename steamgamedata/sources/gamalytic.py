@@ -38,7 +38,7 @@ class Gamalytic(BaseSource):
             verbose=verbose,
         )
 
-        result: SourceResult = {"status": False, "data": None, "error": ""}
+        result: SourceResult = {"success": False, "data": None, "error": ""}
 
         url = f"{self.base_url}game/{appid}"
 
@@ -68,7 +68,7 @@ class Gamalytic(BaseSource):
 
         data = response.json()
 
-        result["status"] = True
+        result["success"] = True
         result["data"] = {
             "appid": data.get("steamId", appid),
             # "name": data.get("name", None),

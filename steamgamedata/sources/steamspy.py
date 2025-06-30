@@ -25,7 +25,7 @@ class SteamSpy(BaseSource):
             verbose=verbose,
         )
 
-        result: SourceResult = {"status": False, "data": None, "error": ""}
+        result: SourceResult = {"success": False, "data": None, "error": ""}
 
         url = f"{self.base_url}?request=appdetails&appid={appid}"
         response = requests.get(url)
@@ -52,7 +52,7 @@ class SteamSpy(BaseSource):
             )
             return result
 
-        result["status"] = True
+        result["success"] = True
         result["data"] = {
             "appid": data.get("appid", appid),
             # "name": data.get("name", None),

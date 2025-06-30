@@ -57,7 +57,7 @@ class SteamCharts(BaseSource):
             verbose=verbose,
         )
 
-        result: SourceResult = {"status": False, "data": None, "error": ""}
+        result: SourceResult = {"success": False, "data": None, "error": ""}
 
         soup = self._make_request(appid)
 
@@ -83,7 +83,7 @@ class SteamCharts(BaseSource):
             )
             return result
 
-        result["status"] = True
+        result["success"] = True
         result["data"] = {
             "active_player_24h": int(peak_data[1].find("span", class_="num").text),  # type: ignore[union-attr,call-arg]
             "peak_active_player_all_time": int(peak_data[2].find("span", class_="num").text),  # type: ignore[union-attr,call-arg]
@@ -107,7 +107,7 @@ class SteamCharts(BaseSource):
         )
 
         result: dict[str, Any] = {
-            "status": False,
+            "success": False,
             "appid": appid,
             "name": None,
             "active_player_data": [],
@@ -153,7 +153,7 @@ class SteamCharts(BaseSource):
             return result
 
         # if we have a player data table, set the status to True
-        result["status"] = True
+        result["success"] = True
 
         # get the player data rows, skipping the first two header rows
         player_data_rows = player_data_table.find_all("tr")[2:]  # type: ignore[attr-defined]
