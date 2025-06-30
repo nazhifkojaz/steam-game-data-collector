@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from steamgamedata.sources.base import BaseSource, SourceResult
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class SteamCharts(BaseSource):
@@ -40,7 +41,8 @@ class SteamCharts(BaseSource):
 
         return BeautifulSoup(response.text, "html.parser")
 
-    def fetch(self, appid: str) -> SourceResult:
+    @logged_rate_limited(calls=60, period=60)  # web scrape -> 60 requests per minute to be polite
+    def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
         """Fetch active player data from SteamCharts based on its appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -49,13 +51,24 @@ class SteamCharts(BaseSource):
             SourceResult: A dictionary containing the status, appid, name, active player data, and any error message if applicable.
         """
 
-        result: SourceResult = {"status": False, "data": None, "error": None}
+        self._log(
+            f"Fetching active player data for appid {appid}.",
+            level="info",
+            verbose=verbose,
+        )
+
+        result: SourceResult = {"success": False, "data": None, "error": ""}
 
         soup = self._make_request(appid)
 
         if not soup:
             # raise ValueError("Failed to fetch data from SteamCharts.")
             result["error"] = "Failed to fetch data from SteamCharts."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         # Get the part where it contains the 24 hour peak and all time peak data
@@ -63,16 +76,22 @@ class SteamCharts(BaseSource):
         if not peak_data:
             # raise ValueError("Failed to parse SteamCharts data. No peak data found.")
             result["error"] = "Failed to parse SteamCharts data. No peak data found."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
-        result["status"] = True
+        result["success"] = True
         result["data"] = {
             "active_player_24h": int(peak_data[1].find("span", class_="num").text),  # type: ignore[union-attr,call-arg]
             "peak_active_player_all_time": int(peak_data[2].find("span", class_="num").text),  # type: ignore[union-attr,call-arg]
         }
         return result
 
-    def fetch_active_player_data(self, appid: str) -> dict[str, Any]:
+    @logged_rate_limited(calls=60, period=60)  # web scrape -> 60 requests per minute to be polite
+    def fetch_active_player_data(self, appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch active player data from SteamChart based on its appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -80,8 +99,15 @@ class SteamCharts(BaseSource):
         Returns:
             dict: The result containing the status, appid, name, active player data, and any error message if applicable.
         """
+
+        self._log(
+            f"Fetching active player data for appid {appid}.",
+            level="info",
+            verbose=verbose,
+        )
+
         result: dict[str, Any] = {
-            "status": False,
+            "success": False,
             "appid": appid,
             "name": None,
             "active_player_data": [],
@@ -92,7 +118,12 @@ class SteamCharts(BaseSource):
 
         if not soup:
             # raise ValueError("Failed to fetch data from SteamCharts.")
-            result["error"] = "Failed to fetch data from SteamCharts."
+            result["error"] = "Failed to fetch data."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         # get the game name, if they don't have a game name, add an error message.
@@ -113,10 +144,16 @@ class SteamCharts(BaseSource):
                 if not result["error"]
                 else result["error"] + " No player data table found."
             )
+
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         # if we have a player data table, set the status to True
-        result["status"] = True
+        result["success"] = True
 
         # get the player data rows, skipping the first two header rows
         player_data_rows = player_data_table.find_all("tr")[2:]  # type: ignore[attr-defined]

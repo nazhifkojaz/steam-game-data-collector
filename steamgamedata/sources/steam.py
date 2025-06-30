@@ -1,6 +1,7 @@
 import requests
 
 from steamgamedata.sources.base import BaseSource, SourceResult
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class Steam(BaseSource):
@@ -11,32 +12,56 @@ class Steam(BaseSource):
             language (str): Language for the API request. Default is "english".
             api_key (str): Optional API key for Steam API.
         """
-        self.region = region
-        self.language = language
-        self.api_key = api_key
+        self._region = region
+        self._language = language
+        self._api_key = api_key
 
-    def set_region(self, region: str) -> None:
+    @property
+    def region(self) -> str:
+        """Get the region for the Steam API."""
+        return self._region
+
+    @region.setter
+    def region(self, value: str) -> None:
         """Set the region for the Steam API.
         Args:
-            region (str): Region for the game data.
+            value (str): Region for the API request.
         """
-        self.region = region
+        if self._region != value:
+            self._region = value
 
-    def set_language(self, language: str) -> None:
+    @property
+    def language(self) -> str:
+        """Get the language for the Steam API."""
+        return self._language
+
+    @language.setter
+    def language(self, value: str) -> None:
         """Set the language for the Steam API.
         Args:
-            language (str): Language for the API request.
+            value (str): Language for the API request.
         """
-        self.language = language
+        if self._language != value:
+            self._language = value
 
-    def set_api_key(self, api_key: str) -> None:
+    @property
+    def api_key(self) -> str | None:
+        """Get the API key for the Steam API."""
+        return self._api_key
+
+    @api_key.setter
+    def api_key(self, value: str) -> None:
         """Set the API key for the Steam API.
         Args:
-            api_key (str): API key for Steam API.
+            value (str): API key for Steam API.
         """
-        self.api_key = api_key
+        if self._api_key != value:
+            self._api_key = value
 
-    def fetch(self, appid: str) -> SourceResult:
+    @logged_rate_limited(
+        calls=60, period=60
+    )  # no official rate limit, but 60 requests per minute is a good practice.
+    def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
         """Fetch game data from steam store based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -45,7 +70,13 @@ class Steam(BaseSource):
             SourceResult: A dictionary containing the status, data, and any error message if applicable.
         """
 
-        result: SourceResult = {"status": False, "data": None, "error": None}
+        self._log(
+            f"Fetching data for appid {appid}.",
+            level="info",
+            verbose=verbose,
+        )
+
+        result: SourceResult = {"success": False, "data": None, "error": ""}
 
         appid = str(appid)  # ensure appid is a string
         url = f"https://store.steampowered.com/api/appdetails?appids={appid}&cc={self.region}&l={self.language}"
@@ -57,6 +88,11 @@ class Steam(BaseSource):
             result["error"] = (
                 f"Failed to connect to Steam store API. Status code: {response.status_code}"
             )
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         data = response.json()
@@ -67,9 +103,15 @@ class Steam(BaseSource):
             result["error"] = (
                 f"Failed to fetch data for appid {appid} or appid is not available in the specified region/language."
             )
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
+
         game_data = data[appid]["data"]
-        result["status"] = True
+        result["success"] = True
         result["data"] = {
             "appid": appid,
             "name": game_data.get("name", None),

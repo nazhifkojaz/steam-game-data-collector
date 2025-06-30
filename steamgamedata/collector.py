@@ -5,6 +5,7 @@ from typing import Any, Literal
 import pandas as pd
 
 import steamgamedata.sources as sources
+from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
 class SteamGameData:
@@ -14,6 +15,8 @@ class SteamGameData:
         language: str = "english",
         steam_api_key: str | None = None,
         gamalytic_api_key: str | None = None,
+        calls: int = 60,
+        period: int = 60,
     ) -> None:
         """Initialize the collector with an optional API key.
         Args:
@@ -21,41 +24,84 @@ class SteamGameData:
             language (str): Language for the API request. Default is "english".
             steam_api_key (str): Optional API key for Steam API.
             gamalytic_api_key (str): Optional API key for Gamalytic API.
+            calls (int): Max number of API calls allowed per period. Default is 60.
+            period (int): Time period in seconds for the rate limit. Default is 60.
         """
-        self.region = region
-        self.language = language
-        self.steam_api_key = steam_api_key
-        self.gamalytic_api_key = gamalytic_api_key
+        self._region = region
+        self._language = language
+        self._steam_api_key = steam_api_key
+        self._gamalytic_api_key = gamalytic_api_key
+        self.calls = calls
+        self.period = period
 
-    def set_region(self, region: str) -> None:
-        """Set the region for the API request.
-        Args:
-            region (str): Region for the API request.
-        """
-        self.region = region
+        self._init_sources()
 
-    def set_language(self, language: str) -> None:
-        """Set the language for the API request.
-        Args:
-            language (str): Language for the API request.
-        """
-        self.language = language
+    def _init_sources(self) -> None:
+        """Initialize the sources with the current settings."""
+        self.steam = sources.Steam(
+            region=self.region, language=self.language, api_key=self.steam_api_key
+        )
+        self.steamspy = sources.SteamSpy()
+        self.gamalytic = sources.Gamalytic(api_key=self.gamalytic_api_key)
+        self.steamcharts = sources.SteamCharts()
+        self.howlongtobeat = sources.HowLongToBeat()
 
-    def set_steam_api_key(self, steam_api_key: str) -> None:
-        """Set the API key for the Steam API.
-        Args:
-            steam_api_key (str): API key for Steam API.
-        """
-        self.steam_api_key = steam_api_key
+    def id_based_sources(self) -> list[sources.BaseSource]:
+        """Get the list of sources that uses appid to fetch data."""
+        return [
+            self.steam,
+            self.steamspy,
+            self.gamalytic,
+            self.steamcharts,
+        ]
 
-    def set_gamalytic_api_key(self, gamalytic_api_key: str) -> None:
-        """Set the API key for the Gamalytic API.
-        Args:
-            gamalytic_api_key (str): API key for Gamalytic API.
-        """
-        self.gamalytic_api_key = gamalytic_api_key
+    def name_based_sources(self) -> list[sources.BaseSource]:
+        """Get the list of sources that uses game name to fetch data."""
+        return [
+            self.howlongtobeat,
+        ]
 
-    def _fetch_raw_data(self, appid: str) -> dict[str, Any]:
+    @property
+    def region(self) -> str:
+        return self._region
+
+    @region.setter
+    def region(self, value: str) -> None:
+        if self._region != value:
+            self._region = value
+            self.steam.region = value
+
+    @property
+    def language(self) -> str:
+        return self._language
+
+    @language.setter
+    def language(self, value: str) -> None:
+        if self._language != value:
+            self._language = value
+            self.steam.language = value
+
+    @property
+    def steam_api_key(self) -> str | None:
+        return self._steam_api_key
+
+    @steam_api_key.setter
+    def steam_api_key(self, value: str) -> None:
+        if self._steam_api_key != value:
+            self._steam_api_key = value
+            self.steam.api_key = value
+
+    @property
+    def gamalytic_api_key(self) -> str | None:
+        return self._gamalytic_api_key
+
+    @gamalytic_api_key.setter
+    def gamalytic_api_key(self, value: str) -> None:
+        if self._gamalytic_api_key != value:
+            self._gamalytic_api_key = value
+            self.gamalytic.api_key = value
+
+    def _fetch_raw_data(self, appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch game data from all sources based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -63,33 +109,21 @@ class SteamGameData:
         Returns:
             dict: The combined game data from all sources.
         """
-
-        # combine the data from all the sources
-        ## initialize sources
-        sources_using_id = [
-            sources.Steam(region=self.region, language=self.language, api_key=self.steam_api_key),
-            sources.SteamSpy(),
-            sources.Gamalytic(api_key=self.gamalytic_api_key),
-            sources.SteamCharts(),
-        ]
-        sources_using_name = [
-            sources.HowLongToBeat(),
-        ]
-
         result: dict[str, Any] = {}
+        result["appid"] = appid  # add the appid to the result
 
-        for source in sources_using_id:
-            data = source.fetch(appid)
-            if data.get("status", False):
+        for source in self.id_based_sources():
+            data = source.fetch(appid, verbose=verbose)
+            if data.get("success", False):
                 # if the status is true, update the result with the data
                 result.update(data.get("data"))  # type: ignore[arg-type]
 
         # get the game name from the steam source
         game_name = result.get("name", None)
-        if game_name:  # skip if t he game name is None
-            for source in sources_using_name:
-                data = source.fetch(result["name"])
-                if data.get("status", False):
+        if game_name:  # skip if the game name is None
+            for source in self.name_based_sources():
+                data = source.fetch(result["name"], verbose=verbose)
+                if data.get("success", False):
                     # if the status is true, update the result with the data
                     result.update(data.get("data"))  # type: ignore[arg-type]
 
@@ -118,7 +152,8 @@ class SteamGameData:
 
         return raw_data
 
-    def _fetch_data(self, appid: str) -> dict[str, Any]:
+    @logged_rate_limited()
+    def _fetch_data(self, appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch game data and process additional fields.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -127,10 +162,10 @@ class SteamGameData:
             dict: The processed game data with additional fields.
         """
 
-        return self._additional_data(self._fetch_raw_data(appid))
+        return self._additional_data(self._fetch_raw_data(appid, verbose=verbose))
 
     def get_game_recap(
-        self, appid: str, return_as: Literal["json", "dict"] = "dict"
+        self, appid: str, return_as: Literal["json", "dict"] = "dict", verbose: bool = True
     ) -> dict[str, Any] | str:
         """Fetch game recap data.
         Game recap data includes game appid, name, release date, days since released, price and its currency, developer, publisher, genres, positive and negative reviews, review ratio, copies sold, estimated revenue, active players in the last 24 hours and in all time.
@@ -142,7 +177,7 @@ class SteamGameData:
             dict | str: The game recap data from Steam and Gamalytic.
         """
 
-        game_data = self._fetch_data(appid)
+        game_data = self._fetch_data(appid, verbose=verbose)
 
         labels_to_return = [
             "appid",
@@ -174,7 +209,7 @@ class SteamGameData:
 
         return json.dumps(filtered_data) if return_as == "json" else filtered_data
 
-    def get_games_recap(self, appids: list[str]) -> pd.DataFrame:
+    def get_games_recap(self, appids: list[str], verbose: bool = True) -> pd.DataFrame:
         """Fetch game recap data for multiple appids.
         Args:
             appids (list[str]): List of appids to fetch data for.
@@ -189,14 +224,14 @@ class SteamGameData:
         all_data = []
 
         for appid in appids:
-            game_recap = self.get_game_recap(appid, return_as="dict")
+            game_recap = self.get_game_recap(appid, return_as="dict", verbose=verbose)
             if game_recap:
                 all_data.append(game_recap)
 
         return pd.DataFrame(all_data)
 
     def get_games_active_player_data(
-        self, appids: list[str], fill_na_as: int = -1
+        self, appids: list[str], fill_na_as: int = -1, verbose: bool = True
     ) -> pd.DataFrame:
         """Fetch active player data for multiple appids.
         Args:
@@ -214,13 +249,15 @@ class SteamGameData:
         all_data = []
 
         for appid in appids:
-            active_player_data = sources.SteamCharts().fetch_active_player_data(appid)
+            active_player_data = sources.SteamCharts().fetch_active_player_data(
+                appid, verbose=verbose
+            )
             game_record = {
                 "appid": appid,
                 "name": active_player_data.get("name", ""),
             }
 
-            if active_player_data.get("status", False):
+            if active_player_data.get("success", False):
                 monthly_data = {
                     month["month"]: month["avg_players"]
                     for month in active_player_data.get("active_player_data", [])
