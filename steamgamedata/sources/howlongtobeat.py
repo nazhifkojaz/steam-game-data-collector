@@ -122,7 +122,7 @@ class HowLongToBeat(BaseSource):
     BASE_URL = "https://howlongtobeat.com/"
     REFERER_HEADER = BASE_URL
 
-    def fetch(self, game_name: str) -> SourceResult:
+    def fetch(self, game_name: str, verbose: bool = True) -> SourceResult:
         """Fetch game completion data from HowLongToBeat based on game name.
         Args:
             game_name (str): The name of the game to search for.
@@ -131,19 +131,35 @@ class HowLongToBeat(BaseSource):
             SourceResult: A dictionary containing the status, completion time data, and any error message if applicable.
         """
 
-        result: SourceResult = {"status": False, "data": None, "error": None}
+        self._log(
+            f"Fetching data for game '{game_name}'",
+            level="info",
+            verbose=verbose,
+        )
+
+        result: SourceResult = {"status": False, "data": None, "error": ""}
 
         search_result = self._make_request(game_name)
         search_result = json.loads(search_result) if search_result else None
 
         # if the search result is None, the request failed
         if not search_result:
-            result["error"] = "Failed to fetch data from HowLongToBeat."
+            result["error"] = "Failed to fetch data."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         # if the search result count is 0, then the game is not found
         if search_result["count"] == 0:
-            result["error"] = "Game is not found on HowLongToBeat."
+            result["error"] = "Game is not found."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         # if not, then get the first data in the search result

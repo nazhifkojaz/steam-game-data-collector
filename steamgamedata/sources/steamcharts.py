@@ -40,7 +40,7 @@ class SteamCharts(BaseSource):
 
         return BeautifulSoup(response.text, "html.parser")
 
-    def fetch(self, appid: str) -> SourceResult:
+    def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
         """Fetch active player data from SteamCharts based on its appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -49,13 +49,24 @@ class SteamCharts(BaseSource):
             SourceResult: A dictionary containing the status, appid, name, active player data, and any error message if applicable.
         """
 
-        result: SourceResult = {"status": False, "data": None, "error": None}
+        self._log(
+            f"Fetching active player data for appid {appid}.",
+            level="info",
+            verbose=verbose,
+        )
+
+        result: SourceResult = {"status": False, "data": None, "error": ""}
 
         soup = self._make_request(appid)
 
         if not soup:
             # raise ValueError("Failed to fetch data from SteamCharts.")
             result["error"] = "Failed to fetch data from SteamCharts."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         # Get the part where it contains the 24 hour peak and all time peak data
@@ -63,6 +74,11 @@ class SteamCharts(BaseSource):
         if not peak_data:
             # raise ValueError("Failed to parse SteamCharts data. No peak data found.")
             result["error"] = "Failed to parse SteamCharts data. No peak data found."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         result["status"] = True
@@ -72,7 +88,7 @@ class SteamCharts(BaseSource):
         }
         return result
 
-    def fetch_active_player_data(self, appid: str) -> dict[str, Any]:
+    def fetch_active_player_data(self, appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch active player data from SteamChart based on its appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -80,6 +96,13 @@ class SteamCharts(BaseSource):
         Returns:
             dict: The result containing the status, appid, name, active player data, and any error message if applicable.
         """
+
+        self._log(
+            f"Fetching active player data for appid {appid}.",
+            level="info",
+            verbose=verbose,
+        )
+
         result: dict[str, Any] = {
             "status": False,
             "appid": appid,
@@ -92,7 +115,12 @@ class SteamCharts(BaseSource):
 
         if not soup:
             # raise ValueError("Failed to fetch data from SteamCharts.")
-            result["error"] = "Failed to fetch data from SteamCharts."
+            result["error"] = "Failed to fetch data."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
 
         # get the game name, if they don't have a game name, add an error message.
@@ -112,6 +140,12 @@ class SteamCharts(BaseSource):
                 "Failed to parse SteamCharts data. No player data table found."
                 if not result["error"]
                 else result["error"] + " No player data table found."
+            )
+
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
             )
             return result
 

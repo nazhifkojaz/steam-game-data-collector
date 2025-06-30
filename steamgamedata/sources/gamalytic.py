@@ -9,17 +9,19 @@ class Gamalytic(BaseSource):
         Args:
             api_key (str): Optional API key for Gamalytic API.
         """
-        self.api_key = api_key
+        self._api_key = api_key
         self.base_url = "https://api.gamalytic.com/"
 
-    def set_api_key(self, api_key: str) -> None:
-        """Set the API key for the Gamalytic API.
-        Args:
-            api_key (str): API key for Gamalytic API.
-        """
-        self.api_key = api_key
+    @property
+    def api_key(self) -> str | None:
+        return self._api_key
 
-    def fetch(self, appid: str) -> SourceResult:
+    @api_key.setter
+    def api_key(self, value: str) -> None:
+        if self._api_key != value:
+            self._api_key = value
+
+    def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
         """Fetch game data from Gamalytic based on appid.
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -28,7 +30,13 @@ class Gamalytic(BaseSource):
             SourceResult: A dictionary containing the status, data, and any error message if applicable.
         """
 
-        result: SourceResult = {"status": False, "data": None, "error": None}
+        self._log(
+            f"Fetching data for appid {appid}.",
+            level="info",
+            verbose=verbose,
+        )
+
+        result: SourceResult = {"status": False, "data": None, "error": ""}
 
         url = f"{self.base_url}game/{appid}"
 
@@ -40,11 +48,19 @@ class Gamalytic(BaseSource):
         if response.status_code == 404:
             # raise ValueError(f"Game with appid {appid} not found.")
             result["error"] = f"Game with appid {appid} not found."
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
+            )
             return result
         elif response.status_code != 200:
             # raise ConnectionError(f"Failed to connect to Gamalytic API. Status code: {response.status_code}")
-            result["error"] = (
-                f"Failed to connect to Gamalytic API. Status code: {response.status_code}"
+            result["error"] = f"Failed to connect to API. Status code: {response.status_code}"
+            self._log(
+                result["error"],
+                level="error",
+                verbose=verbose,
             )
             return result
 
