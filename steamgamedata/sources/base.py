@@ -10,17 +10,62 @@ class SourceResult(TypedDict, total=False):
 
 
 class BaseSource(ABC):
+    @property
     @abstractmethod
-    def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
+    def _valid_labels(self) -> tuple[str, ...]:
+        """Get the valid labels for the data fetched from the source."""
+        pass
+
+    @property
+    @abstractmethod
+    def _valid_labels_set(self) -> frozenset[str]:
+        """Get the valid labels as a frozenset for quick membership testing."""
+        pass
+
+    @property
+    def valid_labels(self) -> tuple[str, ...]:
+        """Get the valid labels for the data fetched from the source."""
+        return self._valid_labels
+
+    @abstractmethod
+    def fetch(
+        self, appid: str, verbose: bool = True, selected_labels: list[str] | None = None
+    ) -> SourceResult:
         """Fetch game data from the source based on appid.
 
         Args:
             appid (str): The appid of the game to fetch data for.
+            verbose (bool): If True, will log the fetching process.
+            selected_labels (list[str] | None): A list of labels to filter the data.
 
         Returns:
             SourceResult: A dictionary containing the status, data, and any error message if applicable.
         """
         pass
+
+    def _filter_valid_labels(self, selected_labels: list[str] | None) -> list[str]:
+        """Filter the selected labels to only include valid labels.
+
+        Args:
+            selected_labels (list[str] | None): A list of labels to filter. If None, all valid labels will be used.
+        Returns:
+            list[str]: A list of valid labels.
+        """
+        if selected_labels is None:
+            return list(self._valid_labels)
+
+        valid = [label for label in selected_labels if label in self._valid_labels_set]
+        invalid = [label for label in selected_labels if label not in self._valid_labels_set]
+
+        # log the invalid labels if any
+        if invalid:
+            self._log(
+                f"Ignoring the following invalid labels: {invalid}, valid labels are: {self._valid_labels}",
+                level="warning",
+                verbose=True,
+            )
+
+        return valid
 
     @property
     def logger(self) -> logging.Logger:
