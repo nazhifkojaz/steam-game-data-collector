@@ -1,17 +1,50 @@
-import requests
+from typing import Any
 
-from steamgamedata.sources.base import BaseSource, SourceResult
+from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
 from steamgamedata.utils.ratelimit import logged_rate_limited
+
+_GAMALYTICS_LABELS = (
+    "steam_appid",
+    "name",
+    "price",
+    "reviews",
+    "reviews_steam",
+    "followers",
+    "average_playtime",
+    "review_score",
+    "tags",
+    "genres",
+    "features",
+    "languages",
+    "developers",
+    "publishers",
+    "release_date",
+    "first_release_date",
+    "unreleased",
+    "early_access",
+    # "countryData",
+    "copies_sold",
+    "revenue",
+    "total_revenue",
+    "players",
+    "owners",
+)
 
 
 class Gamalytic(BaseSource):
+    """Gamalytic source for fetching game data from Gamalytic API."""
+
+    _valid_labels: tuple[str, ...] = _GAMALYTICS_LABELS
+    _valid_labels_set: frozenset[str] = frozenset(_GAMALYTICS_LABELS)
+    _base_url = "https://api.gamalytic.com/game"
+
     def __init__(self, api_key: str | None = None) -> None:
         """Initialize the Gamalytic with an optional API key.
         Args:
             api_key (str): Optional API key for Gamalytic API.
         """
+        super().__init__()
         self._api_key = api_key
-        self.base_url = "https://api.gamalytic.com/"
 
     @property
     def api_key(self) -> str | None:
@@ -23,66 +56,72 @@ class Gamalytic(BaseSource):
             self._api_key = value
 
     @logged_rate_limited(calls=500, period=24 * 60 * 60)  # 500 requests per day
-    def fetch(self, appid: str, verbose: bool = True) -> SourceResult:
+    def fetch(
+        self, steam_appid: str, verbose: bool = True, selected_labels: list[str] | None = None
+    ) -> SourceResult:
         """Fetch game data from Gamalytic based on appid.
         Args:
-            appid (str): The appid of the game to fetch data for.
+            steam_appid (str): The steam appid of the game to fetch data for.
+            verbose (bool): If True, will log the fetching process.
+            selected_labels (list[str] | None): A list of labels to filter the data. If None, all labels will be used.
 
         Returns:
-            SourceResult: A dictionary containing the status, data, and any error message if applicable.
+            SourceResult: A dictionary containing the status, data, or any error message if applicable.
         """
 
         self._log(
-            f"Fetching data for appid {appid}.",
+            f"Fetching data for appid {steam_appid}.",
             level="info",
             verbose=verbose,
         )
 
-        result: SourceResult = {"success": False, "data": None, "error": ""}
+        # Make the request to Gamalytic API
+        response = self._make_request(steam_appid)
 
-        url = f"{self.base_url}game/{appid}"
-
-        # will be used later once I have an API key to test with
-        # if self.api_key:
-        #     url += f"&api_key={self.api_key}"
-
-        response = requests.get(url)
         if response.status_code == 404:
-            # raise ValueError(f"Game with appid {appid} not found.")
-            result["error"] = f"Game with appid {appid} not found."
-            self._log(
-                result["error"],
-                level="error",
-                verbose=verbose,
+            return self._build_error_result(
+                f"Game with appid {steam_appid} is not found.", verbose=verbose
             )
-            return result
         elif response.status_code != 200:
-            # raise ConnectionError(f"Failed to connect to Gamalytic API. Status code: {response.status_code}")
-            result["error"] = f"Failed to connect to API. Status code: {response.status_code}"
-            self._log(
-                result["error"],
-                level="error",
-                verbose=verbose,
+            return self._build_error_result(
+                f"Failed to connect to API. Status code: {response.status_code}", verbose=verbose
             )
-            return result
 
-        data = response.json()
+        # Parse JSON repsonse if everything is fine and pack/process the data as labels we want
+        data_packed = self._transform_data(data=response.json())
 
-        result["success"] = True
-        result["data"] = {
-            "appid": data.get("steamId", appid),
-            # "name": data.get("name", None),
-            "reviews": data.get("reviewsSteam", None),
-            # "reviews_score": data.get("reviewScore", None),
+        if selected_labels:
+            data_packed = {
+                label: data_packed[label] for label in self._filter_valid_labels(selected_labels)
+            }
+
+        return SuccessResult(success=True, data=data_packed)
+
+    def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        # repack / process the daata if needed
+        return {  # default values are None
+            "steam_appid": data.get("steamId", None),
+            "name": data.get("name", None),
+            "price": data.get("price", None),
+            "reviews": data.get("reviews", None),
+            "reviews_steam": data.get("reviewsSteam", None),
             "followers": data.get("followers", None),
-            "avg_playtime": data.get("avgPlaytime", None),
-            "achievements": data.get("achievements", None),
+            "average_playtime": data.get("avgPlaytime", None),
+            "review_score": data.get("reviewScore", None),
+            "tags": data.get("tags", None),
+            "genres": data.get("genres", None),
+            "features": data.get("features", None),
             "languages": data.get("languages", None),
-            # "developers": data.get("developers", None),
-            # "publishers": data.get("publishers", None),
+            "developers": data.get("developers", None),
+            "publishers": data.get("publishers", None),
+            "release_date": data.get("releaseDate", None),
+            "first_release_date": data.get("firstReleaseDate", None),
+            "unreleased": data.get("unreleased", None),
+            "early_access": data.get("earlyAccess", None),
+            # "countryData": data.get("countryData", {}),
             "copies_sold": data.get("copiesSold", None),
-            "estimated_revenue": data.get("revenue", None),
-            "estimated_owners": data.get("owners", None),
+            "revenue": data.get("revenue", None),
+            "total_revenue": data.get("totalRevenue", None),
+            "players": data.get("players", None),
+            "owners": data.get("owners", None),
         }
-
-        return result
