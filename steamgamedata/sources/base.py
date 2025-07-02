@@ -1,15 +1,27 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
+from urllib.parse import urljoin
+
+import requests
 
 
-class SourceResult(TypedDict, total=False):
-    success: bool
-    data: dict[str, Any] | list[Any] | None
+class SuccessResult(TypedDict):
+    success: Literal[True]
+    data: dict[str, Any]
+
+
+class ErrorResult(TypedDict):
+    success: Literal[False]
     error: str
 
 
+SourceResult = SuccessResult | ErrorResult
+
+
 class BaseSource(ABC):
+    _base_url: str
+
     @property
     @abstractmethod
     def _valid_labels(self) -> tuple[str, ...]:
@@ -30,7 +42,7 @@ class BaseSource(ABC):
     @abstractmethod
     def fetch(
         self, appid: str, verbose: bool = True, selected_labels: list[str] | None = None
-    ) -> SourceResult:
+    ) -> SuccessResult | ErrorResult:
         """Fetch game data from the source based on appid.
 
         Args:
@@ -39,8 +51,32 @@ class BaseSource(ABC):
             selected_labels (list[str] | None): A list of labels to filter the data.
 
         Returns:
-            SourceResult: A dictionary containing the status, data, and any error message if applicable.
+            SuccessResult | ErrorResult: A dictionary containing the status, data, or any error message if applicable.
         """
+        pass
+
+    def _make_request(
+        self,
+        endpoint: str | None = None,
+        headers: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> requests.Response:
+        """Default implementation for request
+        Args:
+            endpoint (str): Optional path to append to base URL (e.g., steam_appid)
+            headers (dict | None): Optional headers dictionary
+            params (dict | None): Optional query parameters dictionary
+        Return:
+            requests.Response: The response of the request call.
+        """
+        final_url = self._base_url.rstrip("/")  # remove trailing slash if any
+        if endpoint:
+            final_url = urljoin(final_url + "/", endpoint.rstrip("/"))
+        return requests.get(final_url, headers=headers, params=params)
+
+    @abstractmethod
+    def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Repack and transform the data fetched from the source."""
         pass
 
     def _filter_valid_labels(self, selected_labels: list[str] | None) -> list[str]:
@@ -90,3 +126,15 @@ class BaseSource(ABC):
         """
         if verbose:
             getattr(self.logger, level.lower())(message)
+
+    def _build_error_result(self, error_message: str, verbose: bool = True) -> ErrorResult:
+        """Error message/returns handler.
+        Args:
+            error_message (str): Error Message.
+            verbose (bool): If True, will log the error message. (Default to True)
+        Returns:
+            ErrorResult: A dictionary containing the ErrorResult.
+        """
+        self._log(error_message, level="error", verbose=verbose)
+
+        return ErrorResult(success=False, error=error_message)
