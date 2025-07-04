@@ -110,11 +110,11 @@ class SteamStore(BaseSource):
         steam_appid = str(steam_appid)
 
         # Make the request to steam store API
-        params = {"appid": steam_appid, "cc": self.region, "l": self.language}
+        params = {"appids": steam_appid, "cc": self.region, "l": self.language}
         response = self._make_request(params=params)
 
         if response.status_code != 200:
-            self._build_error_result(
+            return self._build_error_result(
                 f"Failed to connect to API. Status code: {response.status_code}.", verbose=verbose
             )
 
@@ -123,7 +123,7 @@ class SteamStore(BaseSource):
         # check if the response contains the expected data
         if steam_appid not in data or not data[steam_appid]["success"]:
             # raise ValueError(f"Failed to fetch data for appid {appid} or appid is not available in the specified region/language.")
-            self._build_error_result(
+            return self._build_error_result(
                 f"Failed to fetch data for appid {steam_appid}, or appid is not available in the specified region ({self.region}) or language ({self.language}).",
                 verbose=verbose,
             )
@@ -147,7 +147,7 @@ class SteamStore(BaseSource):
         ratings = data.get("ratings", {})
 
         return {  # Default to None
-            "appid": data.get("steam_appid", None),
+            "steam_appid": data.get("steam_appid", None),
             "name": data.get("name", None),
             "type": data.get("type", None),
             "is_coming_soon": release_date.get("coming_soon", None),
