@@ -126,7 +126,7 @@ _HOWLONGTOBEAT_LABELS = (
     "comp_100",
     "comp_all",
     "comp_main_count",
-    "comp_plus_coun",
+    "comp_plus_count",
     "comp_100_count",
     "comp_all_count",
     "invested_co",

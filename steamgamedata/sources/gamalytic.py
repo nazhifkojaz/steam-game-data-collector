@@ -75,6 +75,9 @@ class Gamalytic(BaseSource):
             verbose=verbose,
         )
 
+        # Ensure steam_appid is a string
+        steam_appid = str(steam_appid)
+
         # Make the request to Gamalytic API
         response = self._make_request(steam_appid)
 

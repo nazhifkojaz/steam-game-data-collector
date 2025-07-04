@@ -53,6 +53,9 @@ class SteamSpy(BaseSource):
             verbose=verbose,
         )
 
+        # Ensure steam_appid is string
+        steam_appid = str(steam_appid)
+
         # Prepare the params and make request
         params = {"request": "appdetails", "appid": steam_appid}
         response = self._make_request(params=params)

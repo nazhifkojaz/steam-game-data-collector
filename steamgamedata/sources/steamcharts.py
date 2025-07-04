@@ -73,8 +73,8 @@ class SteamCharts(BaseSource):
             return self._build_error_result(
                 "Failed to parse data, stats data is not found.", verbose=verbose
             )
-        active_player_24h = (int(peak_data[1].find("span", class_="num").text),)  # type: ignore[union-attr,call-arg]
-        peak_active_player_all_time = (int(peak_data[2].find("span", class_="num").text),)  # type: ignore[union-attr,call-arg]
+        active_player_24h = int(peak_data[1].find("span", class_="num").text)  # type: ignore[union-attr,call-arg]
+        peak_active_player_all_time = int(peak_data[2].find("span", class_="num").text)  # type: ignore[union-attr,call-arg]
 
         # get month active data
         active_player_data_table = soup.find("table", class_="common-table")
@@ -82,6 +82,8 @@ class SteamCharts(BaseSource):
             return self._build_error_result(
                 "Failed to parse data, active player data table is not found.", verbose=verbose
             )
+
+        # Skip the "last 30 days" row
         player_data_rows = active_player_data_table.find_all("tr")[2:]  # type: ignore[attr-defined]
         monthly_active_player = []
 
@@ -93,7 +95,7 @@ class SteamCharts(BaseSource):
             monthly_active_player.append(
                 {
                     "month": datetime.strptime(month, "%B %Y").strftime("%Y-%m"),
-                    "avg_players": float(avg_players.replace(",", "")),
+                    "average_players": float(avg_players.replace(",", "")),
                     "gain": float(gain.replace(",", "")) if gain not in ("-", "") else None,
                     "percentage_gain": (
                         float(percentage_gain.replace("%", "").replace(",", "").strip())
@@ -108,7 +110,7 @@ class SteamCharts(BaseSource):
             success=True,
             data={
                 "steam_appid": steam_appid,
-                "name": game_name,
+                "name": game_name.text,
                 "active_player_24h": active_player_24h,
                 "peak_active_player_all_time": peak_active_player_all_time,
                 "monthly_active_player": monthly_active_player,
