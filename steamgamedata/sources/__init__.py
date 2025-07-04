@@ -1,16 +1,18 @@
-from .base import BaseSource, SourceResult
+from .base import BaseSource, ErrorResult, SourceResult, SuccessResult
 from .gamalytic import Gamalytic
 from .howlongtobeat import HowLongToBeat
-from .steam import Steam
 from .steamcharts import SteamCharts
 from .steamspy import SteamSpy
+from .steamstore import SteamStore
 
 __all__ = [
     "BaseSource",
+    "ErrorResult",
     "Gamalytic",
     "HowLongToBeat",
     "SourceResult",
-    "Steam",
+    "SuccessResult",
+    "SteamStore",
     "SteamCharts",
     "SteamSpy",
 ]
