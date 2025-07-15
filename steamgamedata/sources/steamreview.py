@@ -147,7 +147,6 @@ class SteamReview(BaseSource):
     @logged_rate_limited(calls=100000, period=24 * 60 * 60)
     def _fetch_page(self, steam_appid: str, params: dict[str, Any]) -> SteamReviewResponse:
         response = self._make_request(endpoint=steam_appid, params=params)
-        print(response.json())
         return cast(SteamReviewResponse, response.json())
 
     def _transform_data(
