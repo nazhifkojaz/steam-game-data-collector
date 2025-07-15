@@ -20,7 +20,7 @@ SourceResult = SuccessResult | ErrorResult
 
 
 class BaseSource(ABC):
-    _base_url: str
+    _base_url: str | None = None
 
     @property
     @abstractmethod
@@ -57,19 +57,22 @@ class BaseSource(ABC):
 
     def _make_request(
         self,
+        url: str | None = None,
         endpoint: str | None = None,
         headers: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
     ) -> requests.Response:
         """Default implementation for request
         Args:
+            url (str): Optional url if _base_url is not set
             endpoint (str): Optional path to append to base URL (e.g., steam_appid)
             headers (dict | None): Optional headers dictionary
             params (dict | None): Optional query parameters dictionary
         Return:
             requests.Response: The response of the request call.
         """
-        final_url = self._base_url.rstrip("/")  # remove trailing slash if any
+        source_url = url if url else self._base_url
+        final_url = source_url.rstrip("/")  # remove trailing slash if any
         if endpoint:
             final_url = urljoin(final_url + "/", endpoint.rstrip("/"))
         return requests.get(final_url, headers=headers, params=params)

@@ -79,7 +79,7 @@ class Gamalytic(BaseSource):
         steam_appid = str(steam_appid)
 
         # Make the request to Gamalytic API
-        response = self._make_request(steam_appid)
+        response = self._make_request(endpoint=steam_appid)
 
         if response.status_code == 404:
             return self._build_error_result(
