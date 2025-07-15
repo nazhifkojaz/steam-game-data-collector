@@ -52,6 +52,7 @@ class DataCollector:
         self.gamalytic = sources.Gamalytic(api_key=self.gamalytic_api_key)
         self.steamcharts = sources.SteamCharts()
         self.howlongtobeat = sources.HowLongToBeat()
+        self.steamachievements = sources.SteamAchievements(api_key=self.steam_api_key)
 
     def _init_sources_config(self) -> None:
         """Initialize sources config."""
@@ -69,7 +70,6 @@ class DataCollector:
                     "platforms",
                     "genres",
                     "metacritic_score",
-                    "achievements",
                     "release_date",
                     "content_rating",
                 ],
@@ -93,6 +93,14 @@ class DataCollector:
                     "total_reviews",
                 ],
             ),
+            SourceConfig(
+                self.steamachievements,
+                [
+                    "achievements_count",
+                    "achievements_percentage_average",
+                    "achievements",
+                ]
+            )
         ]
 
         self._name_based_sources = [
@@ -160,6 +168,7 @@ class DataCollector:
         if self._steam_api_key != value:
             self._steam_api_key = value
             self.steamstore.api_key = value
+            self.steamachievements.api_key = value
 
     @property
     def gamalytic_api_key(self) -> str | None:
@@ -204,9 +213,12 @@ class DataCollector:
                 "publishers",
                 "genres",
                 "tags",
+                "achievements_count",
+                "achievements_percentage_average",
                 "total_positive",
                 "total_negative",
-                "total_reviews" "copies_sold",
+                "total_reviews",
+                "copies_sold",
                 "revenue",
                 "owners",
                 "comp_main",
