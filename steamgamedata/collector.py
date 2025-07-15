@@ -44,6 +44,7 @@ class DataCollector:
 
     def _init_sources(self) -> None:
         """Initialize the sources with the current settings."""
+        self.steamreview = sources.SteamReview()
         self.steamstore = sources.SteamStore(
             region=self.region, language=self.language, api_key=self.steam_api_key
         )
@@ -77,10 +78,20 @@ class DataCollector:
                 self.gamalytic,
                 ["average_playtime", "copies_sold", "revenue", "total_revenue", "owners"],
             ),
-            SourceConfig(self.steamspy, ["positive_reviews", "negative_reviews", "ccu", "tags"]),
+            SourceConfig(self.steamspy, ["ccu", "tags"]),
             SourceConfig(
                 self.steamcharts,
                 ["active_player_24h", "peak_active_player_all_time", "monthly_active_player"],
+            ),
+            SourceConfig(
+                self.steamreview,
+                [
+                    "review_score",
+                    "review_score_desc",
+                    "total_positive",
+                    "total_negative",
+                    "total_reviews",
+                ],
             ),
         ]
 
@@ -193,9 +204,9 @@ class DataCollector:
                 "publishers",
                 "genres",
                 "tags",
-                "positive_reviews",
-                "negative_reviews",
-                "copies_sold",
+                "total_positive",
+                "total_negative",
+                "total_reviews" "copies_sold",
                 "revenue",
                 "owners",
                 "comp_main",
@@ -356,6 +367,21 @@ class DataCollector:
         df.fillna(fill_na_as, inplace=True)
 
         return df
+
+    def get_game_review(self, steam_appid: str, verbose: bool = True) -> pd.DataFrame:
+        reviews_data = self.steamreview.fetch(
+            steam_appid=steam_appid,
+            verbose=verbose,
+            filter="recent",
+            language="all",
+            review_type="all",
+            purchase_type="all",
+            mode="review",
+        )
+
+        if reviews_data["success"]:
+            return pd.DataFrame(reviews_data["data"]["reviews"])
+        return pd.DataFrame([])
 
     @logged_rate_limited()
     def _fetch_data(self, steam_appid: str, verbose: bool = True) -> dict[str, Any] | None:
