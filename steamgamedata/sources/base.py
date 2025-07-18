@@ -72,7 +72,7 @@ class BaseSource(ABC):
             requests.Response: The response of the request call.
         """
         source_url = url if url else self._base_url
-        final_url = source_url.rstrip("/")  # remove trailing slash if any
+        final_url = source_url.rstrip("/")  # type: ignore[union-attr]
         if endpoint:
             final_url = urljoin(final_url + "/", endpoint.rstrip("/"))
         return requests.get(final_url, headers=headers, params=params)
@@ -99,7 +99,7 @@ class BaseSource(ABC):
 
         valid: list[str] = []
         invalid: list[str] = []
-        for label in validation_set:
+        for label in selected_labels:
             (valid if label in validation_set else invalid).append(label)
 
         # log the invalid labels if any
