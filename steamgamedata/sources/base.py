@@ -20,7 +20,7 @@ SourceResult = SuccessResult | ErrorResult
 
 
 class BaseSource(ABC):
-    _base_url: str
+    _base_url: str | None = None
 
     @property
     @abstractmethod
@@ -57,19 +57,22 @@ class BaseSource(ABC):
 
     def _make_request(
         self,
+        url: str | None = None,
         endpoint: str | None = None,
         headers: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
     ) -> requests.Response:
         """Default implementation for request
         Args:
+            url (str): Optional url if _base_url is not set
             endpoint (str): Optional path to append to base URL (e.g., steam_appid)
             headers (dict | None): Optional headers dictionary
             params (dict | None): Optional query parameters dictionary
         Return:
             requests.Response: The response of the request call.
         """
-        final_url = self._base_url.rstrip("/")  # remove trailing slash if any
+        source_url = url if url else self._base_url
+        final_url = source_url.rstrip("/")  # type: ignore[union-attr]
         if endpoint:
             final_url = urljoin(final_url + "/", endpoint.rstrip("/"))
         return requests.get(final_url, headers=headers, params=params)
@@ -79,24 +82,31 @@ class BaseSource(ABC):
         """Repack and transform the data fetched from the source."""
         pass
 
-    def _filter_valid_labels(self, selected_labels: list[str] | None) -> list[str]:
+    def _filter_valid_labels(
+        self, selected_labels: list[str], valid_labels: list[str] | tuple[str, ...] | None = None
+    ) -> list[str]:
         """Filter the selected labels to only include valid labels.
 
         Args:
-            selected_labels (list[str] | None): A list of labels to filter. If None, all valid labels will be used.
+            selected_labels (list[str]): A list of labels to filter.
         Returns:
             list[str]: A list of valid labels.
         """
-        if selected_labels is None:
-            return list(self._valid_labels)
 
-        valid = [label for label in selected_labels if label in self._valid_labels_set]
-        invalid = [label for label in selected_labels if label not in self._valid_labels_set]
+        validation_set = (
+            frozenset(valid_labels) if valid_labels is not None else self._valid_labels_set
+        )
+
+        valid: list[str] = []
+        invalid: list[str] = []
+        for label in selected_labels:
+            (valid if label in validation_set else invalid).append(label)
 
         # log the invalid labels if any
         if invalid:
+            reference_labels = valid_labels if valid_labels is not None else self._valid_labels
             self._log(
-                f"Ignoring the following invalid labels: {invalid}, valid labels are: {self._valid_labels}",
+                f"Ignoring the following invalid labels: {invalid}, valid labels are: {reference_labels}",
                 level="warning",
                 verbose=True,
             )

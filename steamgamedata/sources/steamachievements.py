@@ -1,0 +1,224 @@
+from typing import Any, Tuple
+
+from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
+from steamgamedata.utils.ratelimit import logged_rate_limited
+
+_STEAMACHIEVEMENT_LABELS = (
+    "achievements_count",
+    "achievements_percentage_average",
+    "achievements",
+)
+
+
+class SteamAchievements(BaseSource):
+    _valid_labels: tuple[str, ...] = _STEAMACHIEVEMENT_LABELS
+    _valid_labels_set: frozenset[str] = frozenset(_STEAMACHIEVEMENT_LABELS)
+    _base_url = (
+        "http://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v0002"
+    )
+    _schema_url = "http://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2"
+
+    def __init__(self, api_key: str | None = None) -> None:
+        """Initialize SteamAchievement source."""
+        self._api_key = api_key
+
+    @property
+    def api_key(self) -> str | None:
+        """Get the api_key for the SteamWeb API."""
+        return self._api_key
+
+    @api_key.setter
+    def api_key(self, value: str) -> None:
+        """Set the api_key for the SteamWeb API.
+        Args:
+            value (str): API key fo SteamWeb API.
+        """
+        if self._api_key != value:
+            self._api_key = value
+
+    @logged_rate_limited(calls=100000, period=24 * 60 * 60)
+    def fetch(
+        self,
+        steam_appid: str,
+        verbose: bool = True,
+        selected_labels: list[str] | None = None,
+    ) -> SourceResult:
+        """Fetch game data from SteamWeb API based on appid.
+        Args:
+            steam_appid (str): The steam appid of the game to fetch data for.
+            verbose (bool): If True, will log the fetching process.
+            selected_labels (list[str] | None): A list of labels to filter the data. If None, all labels will be used.
+
+        Returns:
+            SourceResult: A dictionary containing the status, data, or any error message if applicable.
+        """
+
+        self._log(
+            f"Fetch data for appid {steam_appid}.",
+            level="info",
+            verbose=verbose,
+        )
+
+        if not self._api_key:
+            self._log(
+                "API Key is not assigned. Some details will not be included.",
+                level="warning",
+                verbose=verbose,
+            )
+
+        # ensure steam_appid is string
+        steam_appid = str(steam_appid)
+
+        ## Prepare the params and make request
+        # make request for achievement percentage data
+        params = {
+            "gameid": steam_appid,
+        }
+        response = self._make_request(params=params)
+
+        if response.status_code != 200:
+            return self._build_error_result(
+                f"Failed to connect to API. Status code: {response.status_code}.",
+                verbose=verbose,
+            )
+
+        percentage_data = response.json()
+
+        # make request for scheme if api_key is provided
+        if self._api_key:
+            schema_data = self._fetch_schema_data(steam_appid=steam_appid, verbose=verbose)
+            if not schema_data["success"]:
+                return self._build_error_result(schema_data["error"], verbose=False)
+            data_packed = self._transform_data(
+                data=percentage_data, schema_data=schema_data["data"]
+            )
+        else:
+            data_packed = self._transform_data(data=percentage_data)
+
+        if selected_labels:
+            data_packed = {
+                label: data_packed[label]
+                for label in self._filter_valid_labels(selected_labels=selected_labels)
+            }
+
+        return SuccessResult(success=True, data=data_packed)
+
+    def _fetch_schema_data(self, steam_appid: str, verbose: bool = True) -> SourceResult:
+        # prepare the params
+        params = {
+            "appid": steam_appid,
+            "key": self._api_key,
+        }
+        response = self._make_request(url=self._schema_url, params=params)
+        if response.status_code == 403:
+            return self._build_error_result(
+                f"Access denied, verify your API Key. Status code: {response.status_code}.",
+                verbose=verbose,
+            )
+        elif not response.ok:
+            return self._build_error_result(
+                f"Failed to connect to API. Status code: {response.status_code}.",
+                verbose=verbose,
+            )
+
+        data = response.json()
+
+        return SuccessResult(success=True, data=data)
+
+    def _transform_data(
+        self, data: dict[str, Any], schema_data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        percentage_data = data.get("achievementpercentages", {}).get("achievements", [])
+        if not percentage_data:  # returns None if the data turns out to be empty
+            return {
+                "achievements_count": None,
+                "achievements_percentage_average": None,
+                "achievements": None,
+            }
+
+        base_achievements, achievements_count, achievements_percentage_average = (
+            self._calculate_average_percentage(percentage_data)
+        )
+
+        schema_achievements = (
+            schema_data.get("game", {}).get("availableGameStats", {}).get("achievements", [])
+            if schema_data
+            else None
+        )
+
+        # merge achievements
+        achievements = (
+            self._merge_achievements(
+                base_achievements=base_achievements, schema_data=schema_achievements
+            )
+            if schema_achievements
+            else base_achievements
+        )
+
+        return {
+            "achievements_count": achievements_count,
+            "achievements_percentage_average": achievements_percentage_average,
+            "achievements": achievements,
+        }
+
+    def _calculate_average_percentage(
+        self, achievements: list[dict[str, Any]]
+    ) -> Tuple[list[dict[str, Any]], int, float]:
+        """Process achievements data. (assuming achievements is not empty)
+        Args:
+            achievements (list of dictionaries): list of achievements.
+        Returns:
+            - list of achievements.
+            - achievements count.
+            - average achievements percentage.
+        """
+        transformed = []
+        total = 0.0
+
+        for entry in achievements:
+            try:
+                percentage = float(entry["percent"])
+                transformed.append({"name": entry["name"], "percent": percentage})
+                total += percentage
+            except (KeyError, ValueError):
+                continue
+
+        count = len(transformed)
+        average = round(total / count, 2) if count > 0 else 0.0
+        return transformed, count, average
+
+    def _merge_achievements(
+        self,
+        base_achievements: list[dict[str, Any]],
+        schema_data: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Merge base achievements (name, percentage) and schema data (name, displayName, etc).
+        Args:
+            base_achievements (list of dictionaries): list of achievements data from GetGlobalAchievementPercentagesForApp.
+            schema_data (list of dictionaries): schema data from GetSchemaForGame.
+        Returns:
+            Merged achievements data, consist of labels:
+            - name
+            - percent
+            - display_name
+            - hidden
+            - description (None if does not exist)
+        """
+
+        # create a lookup dict for faster process
+        percentage_lookup = {acv["name"]: acv["percent"] for acv in base_achievements}
+
+        # merge them together
+        merged = []
+        for entry in schema_data:
+            name = entry["name"]
+            merged.append(
+                {
+                    "name": name,
+                    "percent": percentage_lookup[name],  # key should exist
+                    "display_name": entry["displayName"],  # this key should also exist
+                    "hidden": entry.get("hidden", None),
+                    "description": entry.get("description", None),
+                }
+            )
+        return merged
