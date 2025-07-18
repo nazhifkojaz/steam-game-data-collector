@@ -74,6 +74,13 @@ class SteamReview(BaseSource):
 
         Returns:
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
+
+        Behavior:
+            This function will probably be refactored for better readibility but this function have 2 behavior, to fetch only review summary, or review summary + reviews list.
+            1. "summary" mode:
+                - this function will return review summary, data will consists of _STEAMREVIEW_SUMMARY_LABELS labels, and the selected_labels will be used to filter based on _STEAMREVIEW_SUMMARY_LABELS.
+            2. "review" mode:
+                - this function will return reviiew summary and reviews list, data will consists of _STEAMREVIEW_SUMMARY_LABELS + "reviews" labels, and the selected_labels will be used to filter reviews' data (based on _STEAMREVIEW_REVIEW_LABELS).
         """
 
         self._log(f"Fetching review data for appid {steam_appid}.", level="info", verbose=verbose)
@@ -104,10 +111,18 @@ class SteamReview(BaseSource):
                 f"Game with {steam_appid} is not found, or error on the request's cursor.",
                 verbose=verbose,
             )
+
+        summary_data = self._transform_data(page_data["query_summary"], "summary")
+
         if mode == "summary":
+            if selected_labels:
+                summary_data = {
+                    label: summary_data[label]
+                    for label in self._filter_valid_labels(selected_labels=selected_labels)
+                }
             return SuccessResult(
                 success=True,
-                data=self._transform_data(page_data["query_summary"], "summary"),
+                data=summary_data,
             )
 
         reviews_data: list[dict[str, Any]] = []
@@ -140,6 +155,7 @@ class SteamReview(BaseSource):
         return SuccessResult(
             success=True,
             data={
+                **summary_data,
                 "reviews": reviews_data,
             },
         )
@@ -155,7 +171,7 @@ class SteamReview(BaseSource):
         data_type: Literal["summary", "review"] = "summary",
     ) -> dict[str, Any]:
         if data_type == "summary":
-            transformed = {
+            return {
                 "review_score": data.get("review_score", None),
                 "review_score_desc": data.get("review_score_desc", None),
                 "total_positive": data.get("total_positive", None),
@@ -164,7 +180,7 @@ class SteamReview(BaseSource):
             }
         else:
             author = data.get("author", {})
-            transformed = {
+            return {
                 "recommendation_id": data.get("recommendationid", None),
                 "author_steamid": author.get("steamid", None),
                 "author_num_games_owned": author.get("num_games_owned", None),
@@ -187,4 +203,3 @@ class SteamReview(BaseSource):
                 "written_during_early_access": data.get("written_during_early_access", None),
                 "primarily_steam_deck": data.get("primarily_steam_deck", None),
             }
-        return transformed
