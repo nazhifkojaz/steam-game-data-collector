@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import datetime
 from typing import Any, Literal, NamedTuple
 
@@ -53,6 +54,7 @@ class DataCollector:
         self.steamcharts = sources.SteamCharts()
         self.howlongtobeat = sources.HowLongToBeat()
         self.steamachievements = sources.SteamAchievements(api_key=self.steam_api_key)
+        self.steamuser = sources.SteamUser(api_key=self.steam_api_key)
 
     def _init_sources_config(self) -> None:
         """Initialize sources config."""
@@ -99,8 +101,8 @@ class DataCollector:
                     "achievements_count",
                     "achievements_percentage_average",
                     "achievements",
-                ]
-            )
+                ],
+            ),
         ]
 
         self._name_based_sources = [
@@ -169,6 +171,7 @@ class DataCollector:
             self._steam_api_key = value
             self.steamstore.api_key = value
             self.steamachievements.api_key = value
+            self.steamuser.api_key = value
 
     @property
     def gamalytic_api_key(self) -> str | None:
@@ -179,6 +182,44 @@ class DataCollector:
         if self._gamalytic_api_key != value:
             self._gamalytic_api_key = value
             self.gamalytic.api_key = value
+
+    def get_user_data(
+        self,
+        steamids: str | list[str],
+        include_free_games: bool = True,
+        return_as: Literal["list", "dataframe"] = "dataframe",
+        verbose: bool = True,
+    ) -> list[dict[str, Any]] | pd.DataFrame:
+        """Fetch user data from provided steamids.
+        Args:
+            steamids (str | list[str]): Either a single or a list of 64bit SteamIDs
+            include_free_games (bool): If True, will include free games when fetching users' owned games list. Default to True.
+            return_as (str): Return format, "list" for list of dicts, "dataframe" for pandas DataFrame. Default to "dataframe".
+            verbose (bool): If True, will log the fetching process.
+        """
+        steamid_list = (
+            [steamids] if isinstance(steamids, str) or isinstance(steamids, int) else steamids
+        )
+
+        results = []
+
+        for steamid in steamid_list:
+            fetch_result = self.steamuser.fetch(
+                steamid=steamid, include_free_games=include_free_games, verbose=verbose
+            )
+            if fetch_result["success"]:
+                user_data = fetch_result["data"]
+                results.append(user_data)
+            else:
+                user_data = {"steamid": steamid}
+                results.append(user_data)
+
+            time.sleep(0.25)  # internal sleep to prevent over-calling
+
+        if return_as == "dataframe":
+            return pd.DataFrame(results)
+
+        return results
 
     def get_game_recap(
         self, steam_appid: str, return_as: Literal["json", "dict"] = "dict", verbose: bool = True
@@ -380,7 +421,9 @@ class DataCollector:
 
         return df
 
-    def get_game_review(self, steam_appid: str, verbose: bool = True) -> pd.DataFrame:
+    def get_game_review(
+        self, steam_appid: str, verbose: bool = True, review_only: bool = True
+    ) -> pd.DataFrame:
         reviews_data = self.steamreview.fetch(
             steam_appid=steam_appid,
             verbose=verbose,
@@ -392,11 +435,16 @@ class DataCollector:
         )
 
         if reviews_data["success"]:
-            return pd.DataFrame(reviews_data["data"]["reviews"])
+            if review_only:
+                return pd.DataFrame(reviews_data["data"]["reviews"])
+            else:
+                print(reviews_data["data"])
+                return pd.DataFrame([reviews_data["data"]])
+
         return pd.DataFrame([])
 
     @logged_rate_limited()
-    def _fetch_data(self, steam_appid: str, verbose: bool = True) -> dict[str, Any] | None:
+    def _fetch_data(self, steam_appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch game data and process additional fields (if the required fields exist).
 
         Args:
@@ -409,9 +457,7 @@ class DataCollector:
 
         raw_data = self._fetch_raw_data(steam_appid, verbose)
 
-        if raw_data:
-            return self._additional_data(raw_data)
-        return None
+        return self._additional_data(raw_data)
 
     def _fetch_raw_data(self, steam_appid: str, verbose: bool = True) -> dict[str, Any]:
         """Fetch game data from all sources based on appid.
