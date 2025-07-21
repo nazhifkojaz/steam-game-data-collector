@@ -3,6 +3,8 @@ from typing import Any, cast
 import requests
 from rapidfuzz import fuzz, process
 
+from steamgamedata.utils.logger import LoggerWrapper
+
 
 class GameSearch:
     _STEAM_APPLIST_URL = "https://api.steampowered.com/ISteamApps/GetAppList/v2/"
@@ -10,6 +12,7 @@ class GameSearch:
     def __init__(self) -> None:
         self._cached_games: list[dict[str, Any]] = []
         self._cached_names: list[str] = []
+        self._logger = LoggerWrapper(self.__class__.__name__)
 
     def refresh(self, force: bool = False) -> None:
         """assign _cached_games and _cached_names"""
@@ -24,8 +27,13 @@ class GameSearch:
 
         return cast(list[dict[str, Any]], response.json()["applist"]["apps"])
 
-    def search_by_name(self, game_name: str, top_n: int = 5) -> list[dict[str, Any]]:
+    def search_by_name(
+        self, game_name: str, top_n: int = 5, verbose: bool = True
+    ) -> list[dict[str, Any]]:
+        self._logger.log(f"Searching steam appid for {game_name}", level="info", verbose=verbose)
+
         self.refresh()
+
         query = game_name.lower()
 
         # search through candidates
@@ -37,11 +45,20 @@ class GameSearch:
             score_cutoff=60,
         )
 
-        return [
+        results = [
             {
                 "appid": str(self._cached_games[idx]["appid"]),
                 "name": self._cached_games[idx]["name"],
                 "search_score": round(score, 2),
             }
             for (_, score, idx) in matches
+            if idx < len(self._cached_games)
         ][:top_n]
+
+        self._logger.log(
+            "Search completed.",
+            level="info" if results else "warning",
+            verbose=verbose,
+        )
+
+        return results
