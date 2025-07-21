@@ -1,9 +1,10 @@
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, Literal, TypedDict
 from urllib.parse import urljoin
 
 import requests
+
+from steamgamedata.utils import LoggerWrapper
 
 
 class SuccessResult(TypedDict):
@@ -21,6 +22,13 @@ SourceResult = SuccessResult | ErrorResult
 
 class BaseSource(ABC):
     _base_url: str | None = None
+
+    def __init__(self) -> None:
+        self._logger = LoggerWrapper(self.__class__.__name__)
+
+    @property
+    def logger(self) -> "LoggerWrapper":
+        return self._logger
 
     @property
     @abstractmethod
@@ -105,37 +113,13 @@ class BaseSource(ABC):
         # log the invalid labels if any
         if invalid:
             reference_labels = valid_labels if valid_labels is not None else self._valid_labels
-            self._log(
+            self.logger.log(
                 f"Ignoring the following invalid labels: {invalid}, valid labels are: {reference_labels}",
                 level="warning",
                 verbose=True,
             )
 
         return valid
-
-    @property
-    def logger(self) -> logging.Logger:
-        """initialize logger"""
-        if not hasattr(self, "_logger"):
-            self._logger = logging.getLogger(self.__class__.__name__)
-            self._logger.propagate = False  # prevent logging from propagating to the root logger
-            # avoid duplicate handler
-            if not self._logger.handlers:
-                handler = logging.StreamHandler()
-                handler.setFormatter(logging.Formatter("%(levelname)s - %(name)s: %(message)s"))
-                self._logger.addHandler(handler)
-                self._logger.setLevel(logging.INFO)
-        return self._logger
-
-    def _log(self, message: str, level: str = "info", verbose: bool = False) -> None:
-        """Log the message at the specified level.
-        Args:
-            message (str): The message to log.
-            level (str): The logging level ('debug', 'info', 'warning', 'error', etc.).
-            verbose (bool): If False, will not log the message
-        """
-        if verbose:
-            getattr(self.logger, level.lower())(message)
 
     def _build_error_result(self, error_message: str, verbose: bool = True) -> ErrorResult:
         """Error message/returns handler.
@@ -145,6 +129,6 @@ class BaseSource(ABC):
         Returns:
             ErrorResult: A dictionary containing the ErrorResult.
         """
-        self._log(error_message, level="error", verbose=verbose)
+        self.logger.log(error_message, level="error", verbose=verbose)
 
         return ErrorResult(success=False, error=error_message)

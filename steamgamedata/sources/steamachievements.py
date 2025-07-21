@@ -20,6 +20,7 @@ class SteamAchievements(BaseSource):
 
     def __init__(self, api_key: str | None = None) -> None:
         """Initialize SteamAchievement source."""
+        super().__init__()
         self._api_key = api_key
 
     @property
@@ -53,14 +54,14 @@ class SteamAchievements(BaseSource):
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetch data for appid {steam_appid}.",
             level="info",
             verbose=verbose,
         )
 
         if not self._api_key:
-            self._log(
+            self.logger.log(
                 "API Key is not assigned. Some details will not be included.",
                 level="warning",
                 verbose=verbose,

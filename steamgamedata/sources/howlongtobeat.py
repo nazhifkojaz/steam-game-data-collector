@@ -171,7 +171,7 @@ class HowLongToBeat(BaseSource):
             SourceResult: A dictionary containing the status, completion time data, and any error message if applicable.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching data for game '{game_name}'",
             level="info",
             verbose=verbose,

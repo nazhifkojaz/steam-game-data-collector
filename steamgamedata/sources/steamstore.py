@@ -100,7 +100,7 @@ class SteamStore(BaseSource):
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching data for appid {steam_appid}.",
             level="info",
             verbose=verbose,

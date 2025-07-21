@@ -27,6 +27,7 @@ class SteamUser(BaseSource):
 
     def __init__(self, api_key: str | None = None) -> None:
         """Initialize SteamUser source."""
+        super().__init__()
         self._api_key = api_key
 
     @property
@@ -62,7 +63,7 @@ class SteamUser(BaseSource):
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching user data for steamid {steamid}.",
             level="info",
             verbose=verbose,

@@ -32,6 +32,7 @@ class SteamSpy(BaseSource):
 
     def __init__(self) -> None:
         """Initialize the SteamSpy with the base URL."""
+        super().__init__()
 
     @logged_rate_limited(calls=60, period=60)  # 60 requests per minute.
     def fetch(
@@ -47,7 +48,7 @@ class SteamSpy(BaseSource):
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching data for appid {steam_appid}.",
             level="info",
             verbose=verbose,

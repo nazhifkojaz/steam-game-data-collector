@@ -25,6 +25,7 @@ class SteamCharts(BaseSource):
 
     def __init__(self) -> None:
         """Initialize the SteamCharts source."""
+        super().__init__()
 
     @logged_rate_limited(calls=60, period=60)  # web scrape -> 60 requests per minute to be polite
     def fetch(
@@ -40,7 +41,7 @@ class SteamCharts(BaseSource):
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching active player data for appid {steam_appid}.",
             level="info",
             verbose=verbose,
