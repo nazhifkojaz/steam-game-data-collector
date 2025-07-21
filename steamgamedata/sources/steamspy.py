@@ -46,6 +46,10 @@ class SteamSpy(BaseSource):
 
         Returns:
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
+            
+        Behavior:
+            - If successful, will return a SuccessResult with the data based on the selected_labels or _valid_labels.
+            - If unsuccessful, will return an error message indicating the failure reason.
         """
 
         self.logger.log(
@@ -84,6 +88,7 @@ class SteamSpy(BaseSource):
     def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
         # repack / process the data if needed
         tags = data.get("tags", {})
+        tags = {} if isinstance(tags, list) else tags
         return {
             "steam_appid": data.get("appid", None),
             "name": data.get("name", None),
