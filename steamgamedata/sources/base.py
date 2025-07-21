@@ -24,6 +24,7 @@ class BaseSource(ABC):
     _base_url: str | None = None
 
     def __init__(self) -> None:
+        """Initialize the base class for all its children."""
         self._logger = LoggerWrapper(self.__class__.__name__)
 
     @property
@@ -51,7 +52,7 @@ class BaseSource(ABC):
     def fetch(
         self, appid: str, verbose: bool = True, selected_labels: list[str] | None = None
     ) -> SuccessResult | ErrorResult:
-        """Fetch game data from the source based on appid.
+        """Abstract method to fetch data from the source.
 
         Args:
             appid (str): The appid of the game to fetch data for.
@@ -70,7 +71,7 @@ class BaseSource(ABC):
         headers: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
     ) -> requests.Response:
-        """Default implementation for request
+        """Default implementation for request.
         Args:
             url (str): Optional url if _base_url is not set
             endpoint (str): Optional path to append to base URL (e.g., steam_appid)
@@ -97,6 +98,7 @@ class BaseSource(ABC):
 
         Args:
             selected_labels (list[str]): A list of labels to filter.
+            valid_labels (list[str] | tuple[str, ...] | None): Valid labels to compare with. If None, uses the class's valid labels.
         Returns:
             list[str]: A list of valid labels.
         """

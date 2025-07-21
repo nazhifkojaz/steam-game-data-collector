@@ -59,7 +59,7 @@ class Gamalytic(BaseSource):
     def fetch(
         self, steam_appid: str, verbose: bool = True, selected_labels: list[str] | None = None
     ) -> SourceResult:
-        """Fetch game data from Gamalytic based on appid.
+        """Fetch game data from Gamalytic based on steam_appid.
         Args:
             steam_appid (str): The steam appid of the game to fetch data for.
             verbose (bool): If True, will log the fetching process.
@@ -67,6 +67,10 @@ class Gamalytic(BaseSource):
 
         Returns:
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
+
+        Behavior:
+            - If successful, will return a SuccessResult with the data based on the selected_labels or _valid_labels.
+            - If unsuccessful, will return an error message indicating the failure reason.
         """
 
         self.logger.log(
@@ -101,7 +105,7 @@ class Gamalytic(BaseSource):
         return SuccessResult(success=True, data=data_packed)
 
     def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
-        # repack / process the daata if needed
+        # repack / process the data if needed
         return {  # default values are None
             "steam_appid": data.get("steamId", None),
             "name": data.get("name", None),
