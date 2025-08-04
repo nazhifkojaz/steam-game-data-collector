@@ -83,7 +83,9 @@ class SteamReview(BaseSource):
                 - this function will return reviiew summary and reviews list, data will consists of _STEAMREVIEW_SUMMARY_LABELS + "reviews" labels, and the selected_labels will be used to filter reviews' data (based on _STEAMREVIEW_REVIEW_LABELS).
         """
 
-        self._log(f"Fetching review data for appid {steam_appid}.", level="info", verbose=verbose)
+        self.logger.log(
+            f"Fetching review data for appid {steam_appid}.", level="info", verbose=verbose
+        )
 
         # ensure steam_appid is string
         steam_appid = str(steam_appid)
@@ -130,7 +132,7 @@ class SteamReview(BaseSource):
             # log the total reviews
             if params["cursor"] == "*":
                 total_review = page_data["query_summary"].get("total_reviews", 0)
-                self._log(
+                self.logger.log(
                     f"Found {total_review} reviews for {steam_appid}. If fetch_all is True, the reviews fetching process might take a while.",
                     verbose=verbose,
                 )

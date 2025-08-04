@@ -10,7 +10,7 @@ _GAMALYTICS_LABELS = (
     "reviews",
     "reviews_steam",
     "followers",
-    "average_playtime",
+    "average_playtime_h",
     "review_score",
     "tags",
     "genres",
@@ -24,8 +24,8 @@ _GAMALYTICS_LABELS = (
     "early_access",
     # "countryData",
     "copies_sold",
-    "revenue",
-    "total_revenue",
+    "estimated_revenue",
+    # "total_revenue",
     "players",
     "owners",
 )
@@ -59,7 +59,7 @@ class Gamalytic(BaseSource):
     def fetch(
         self, steam_appid: str, verbose: bool = True, selected_labels: list[str] | None = None
     ) -> SourceResult:
-        """Fetch game data from Gamalytic based on appid.
+        """Fetch game data from Gamalytic based on steam_appid.
         Args:
             steam_appid (str): The steam appid of the game to fetch data for.
             verbose (bool): If True, will log the fetching process.
@@ -67,9 +67,13 @@ class Gamalytic(BaseSource):
 
         Returns:
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
+
+        Behavior:
+            - If successful, will return a SuccessResult with the data based on the selected_labels or _valid_labels.
+            - If unsuccessful, will return an error message indicating the failure reason.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching data for appid {steam_appid}.",
             level="info",
             verbose=verbose,
@@ -101,7 +105,7 @@ class Gamalytic(BaseSource):
         return SuccessResult(success=True, data=data_packed)
 
     def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
-        # repack / process the daata if needed
+        # repack / process the data if needed
         return {  # default values are None
             "steam_appid": data.get("steamId", None),
             "name": data.get("name", None),
@@ -109,7 +113,7 @@ class Gamalytic(BaseSource):
             "reviews": data.get("reviews", None),
             "reviews_steam": data.get("reviewsSteam", None),
             "followers": data.get("followers", None),
-            "average_playtime": data.get("avgPlaytime", None),
+            "average_playtime_h": data.get("avgPlaytime", None),
             "review_score": data.get("reviewScore", None),
             "tags": data.get("tags", None),
             "genres": data.get("genres", None),
@@ -123,8 +127,8 @@ class Gamalytic(BaseSource):
             "early_access": data.get("earlyAccess", None),
             # "countryData": data.get("countryData", {}),
             "copies_sold": data.get("copiesSold", None),
-            "revenue": data.get("revenue", None),
-            "total_revenue": data.get("totalRevenue", None),
+            "estimated_revenue": data.get("revenue", None),
+            # "total_revenue": data.get("totalRevenue", None),
             "players": data.get("players", None),
             "owners": data.get("owners", None),
         }

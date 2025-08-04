@@ -32,6 +32,7 @@ class SteamSpy(BaseSource):
 
     def __init__(self) -> None:
         """Initialize the SteamSpy with the base URL."""
+        super().__init__()
 
     @logged_rate_limited(calls=60, period=60)  # 60 requests per minute.
     def fetch(
@@ -45,9 +46,13 @@ class SteamSpy(BaseSource):
 
         Returns:
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
+            
+        Behavior:
+            - If successful, will return a SuccessResult with the data based on the selected_labels or _valid_labels.
+            - If unsuccessful, will return an error message indicating the failure reason.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching data for appid {steam_appid}.",
             level="info",
             verbose=verbose,
@@ -83,6 +88,7 @@ class SteamSpy(BaseSource):
     def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
         # repack / process the data if needed
         tags = data.get("tags", {})
+        tags = {} if isinstance(tags, list) else tags
         return {
             "steam_appid": data.get("appid", None),
             "name": data.get("name", None),

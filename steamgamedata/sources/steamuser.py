@@ -27,6 +27,7 @@ class SteamUser(BaseSource):
 
     def __init__(self, api_key: str | None = None) -> None:
         """Initialize SteamUser source."""
+        super().__init__()
         self._api_key = api_key
 
     @property
@@ -60,9 +61,13 @@ class SteamUser(BaseSource):
 
         Returns:
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
+
+        Behavior:
+            - If successful, will return a SuccessResult with the data based on the selected_labels or _valid_labels.
+            - If unsuccessful, will return an error message indicating the failure reason.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching user data for steamid {steamid}.",
             level="info",
             verbose=verbose,

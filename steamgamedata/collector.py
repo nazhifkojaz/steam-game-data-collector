@@ -1,11 +1,10 @@
-import json
 import time
-from datetime import datetime
 from typing import Any, Literal, NamedTuple
 
 import pandas as pd
 
 import steamgamedata.sources as sources
+from steamgamedata.model.game_data import GameDataModel
 from steamgamedata.utils.ratelimit import logged_rate_limited
 
 
@@ -78,7 +77,7 @@ class DataCollector:
             ),
             SourceConfig(
                 self.gamalytic,
-                ["average_playtime", "copies_sold", "revenue", "total_revenue", "owners"],
+                ["average_playtime_h", "copies_sold", "estimated_revenue", "owners", "languages"],
             ),
             SourceConfig(self.steamspy, ["ccu", "tags"]),
             SourceConfig(
@@ -100,7 +99,7 @@ class DataCollector:
                 [
                     "achievements_count",
                     "achievements_percentage_average",
-                    "achievements",
+                    "achievements_list",
                 ],
             ),
         ]
@@ -109,7 +108,6 @@ class DataCollector:
             SourceConfig(
                 self.howlongtobeat,
                 [
-                    "game_type",
                     "comp_main",
                     "comp_plus",
                     "comp_100",
@@ -221,145 +219,38 @@ class DataCollector:
 
         return results
 
-    def get_game_recap(
-        self, steam_appid: str, return_as: Literal["json", "dict"] = "dict", verbose: bool = True
-    ) -> dict[str, Any] | str | None:
+    def get_games_data(
+        self, steam_appids: str | list[str], recap: bool = False, verbose: bool = True
+    ) -> list[dict[str, Any]]:
         """Fetch game recap data.
         Game recap data includes game appid, name, release date, days since released, price and its currency, developer, publisher, genres, positive and negative reviews, review ratio, copies sold, estimated revenue, active players in the last 24 hours and in all time.
         Args:
-            steam_appid (str): The appid of the game to fetch data for.
-            return_as (str): Format to return the data, either 'json' or 'dict'. Default is 'dict'.
+            steam_appids (str): steam_appid of the game(s) to fetch data for.
+            recap (bool): If True, will return the recap data (for reference: check _RECAP_LABELS).
             verbose (bool): If True, will log the fetching process.
 
         Returns:
-            dict | str: The game recap data.
+            list[dict[str, Any]]: List of games recap data.
 
         Behavior:
             - Returns None if ALL sources fail
             - Returns complete/partial data if ALL/ANY sources succeeds
         """
 
-        game_data = self._fetch_data(steam_appid, verbose=verbose)
+        if not steam_appids:
+            return []
 
-        if game_data:
-            labels_to_return = [
-                "steam_appid",
-                "name",
-                "release_date",
-                "days_since_release",
-                "price_currency",
-                "price_initial",
-                "price_final",
-                "developers",
-                "publishers",
-                "genres",
-                "tags",
-                "achievements_count",
-                "achievements_percentage_average",
-                "total_positive",
-                "total_negative",
-                "total_reviews",
-                "copies_sold",
-                "revenue",
-                "owners",
-                "comp_main",
-                "comp_plus",
-                "comp_100",
-                "comp_all",
-                "invested_co",
-                "invested_mp",
-                "average_playtime",
-                "active_player_24h",
-                "peak_active_player_all_time",
-            ]
+        if isinstance(steam_appids, (str, int)):
+            steam_appids = [steam_appids]
 
-            # filter the game data to only include the labels we want
-            filtered_data = {key: game_data[key] for key in labels_to_return if key in game_data}
+        result = []
+        for steam_appid in steam_appids:
+            game_data = self._fetch_raw_data(steam_appid, verbose=verbose)
+            game_data = game_data.get_recap() if recap else game_data.model_dump()
 
-            return json.dumps(filtered_data) if return_as == "json" else filtered_data
-        return None
+            result.append(game_data)
 
-    def get_game_detail(
-        self, steam_appid: str, return_as: Literal["json", "dict"] = "dict", verbose: bool = True
-    ) -> dict[str, Any] | str | None:
-        """Fetch game detailed data.
-        Args:
-            steam_appid (str): The appid of the game to fetch data for.
-            return_as (str): Format to return the data, either 'json' or 'dict'. Default to dict.
-            verbose (bool): If True, will log the fetching process.
-
-        Returns:
-            dict | str: The game detailed data.
-
-        Behavior:
-            - Returns None if ALL sources fail
-            - Returns complete/partial data if ALL/ANY sources succeeds
-        """
-
-        game_data = self._fetch_data(steam_appid, verbose=verbose)
-        if game_data:
-            return json.dumps(game_data) if return_as == "json" else game_data
-        return None
-
-    def get_games_recap(self, steam_appids: list[str], verbose: bool = True) -> pd.DataFrame:
-        """Fetch game recap data for multiple appids and return it as pandas dataframe.
-        Args:
-            steam_appids (list[str]): List of appids to fetch data for.
-            verbose (str): If True, will log the fetching process.
-
-        Returns:
-            pd.DataFrame: DataFrame containing game recap data for all appids.
-
-        Behavior:
-            - Raises ValueError if only provided with single steam_appid.
-            - Returns complete/partial result if ALL/Any sources succeeds for each rows.
-            - Rows will all source fail will be only have "steam_appid" column
-        """
-
-        if len(steam_appids) <= 1:
-            raise ValueError(
-                "At least two appids are required to fetch data. For singular search, use get_game_*"
-            )
-
-        all_data = []
-
-        for appid in steam_appids:
-            game_recap = self.get_game_recap(appid, return_as="dict", verbose=verbose)
-            if game_recap is None:
-                game_recap = {"steam_appid": appid}
-            all_data.append(game_recap)
-
-        return pd.DataFrame(all_data)
-
-    def get_games_detail(self, steam_appids: list[str], verbose: bool = True) -> pd.DataFrame:
-        """Fetch game detailed data for multiple appids and return it as pandas dataframe.
-
-        Args:
-            steam_appids (list[str]): List of appids to fetch data for.
-            verbose (str): If True, will log the fetching process.
-
-        Returns:
-            pd.DataFrame: DataFrame containing game detailed data for all appids.
-
-        Behavior:
-            - Raises ValueError if only provided with single steam_appid.
-            - Returns complete/partial result if ALL/Any sources succeeds.
-        """
-
-        if len(steam_appids) <= 1:
-            raise ValueError(
-                "At least two appids are required to fetch data. For singular search, use get_game_*"
-            )
-
-        all_data = []
-
-        for appid in steam_appids:
-            game_detail = self.get_game_detail(appid, return_as="dict", verbose=verbose)
-            if game_detail is None:
-                game_detail = {"steam_appid": appid}
-            all_data.append(game_detail)
-
-        return pd.DataFrame(all_data)
+        return result
 
     def get_games_active_player_data(
         self, steam_appids: list[str], fill_na_as: int = -1, verbose: bool = True
@@ -438,28 +329,12 @@ class DataCollector:
             if review_only:
                 return pd.DataFrame(reviews_data["data"]["reviews"])
             else:
-                print(reviews_data["data"])
                 return pd.DataFrame([reviews_data["data"]])
 
         return pd.DataFrame([])
 
     @logged_rate_limited()
-    def _fetch_data(self, steam_appid: str, verbose: bool = True) -> dict[str, Any]:
-        """Fetch game data and process additional fields (if the required fields exist).
-
-        Args:
-            appid (str): The appid of the game to fetch data for.
-            verbose (str): If true, will log the fetching process.
-
-        Returns:
-            dict: The processed game data with additional fields.
-        """
-
-        raw_data = self._fetch_raw_data(steam_appid, verbose)
-
-        return self._additional_data(raw_data)
-
-    def _fetch_raw_data(self, steam_appid: str, verbose: bool = True) -> dict[str, Any]:
+    def _fetch_raw_data(self, steam_appid: str, verbose: bool = True) -> "GameDataModel":
         """Fetch game data from all sources based on appid.
         Args:
             steam_appid (str): The appid of the game to fetch data for.
@@ -468,7 +343,7 @@ class DataCollector:
         Returns:
             dict: The combined game data from all sources.
         """
-        raw_data: dict[str, Any] = {}
+        raw_data: dict[str, Any] = {"steam_appid": str(steam_appid)}
 
         for config in self.id_based_sources:
             source_data = config.source.fetch(steam_appid, verbose=verbose)
@@ -483,28 +358,4 @@ class DataCollector:
                 if source_data["success"]:
                     raw_data.update({key: source_data["data"][key] for key in config.fields})
 
-        return raw_data
-
-    def _additional_data(self, raw_data: dict[str, Any]) -> dict[str, Any]:
-        """Process additional data from the raw data.
-        Additional data includes:
-        - days_since_release: Number of days since the game was released.
-        - (more will be added later)
-
-        Args:
-            raw_data (dict): The raw game data from all sources.
-
-        Returns:
-            dict: raw data with additional fields.
-        """
-        self._process_release_date(raw_data)
-
-        return raw_data
-
-    def _process_release_date(self, raw_data: dict[str, Any]) -> None:
-        """Calculate days_since_release from the raw data."""
-        date_format = "%b %d, %Y"
-        if raw_data.get("release_date", None):
-            raw_data["days_since_release"] = (
-                datetime.now() - datetime.strptime(raw_data["release_date"], date_format)
-            ).days
+        return GameDataModel(**raw_data)

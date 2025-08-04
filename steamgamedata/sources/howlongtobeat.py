@@ -14,6 +14,31 @@ from fake_useragent import UserAgent
 from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
 from steamgamedata.utils.ratelimit import logged_rate_limited
 
+_HOWLONGTOBEAT_LABELS = (
+    "game_id",
+    "game_name",
+    "game_type",
+    "comp_main",
+    "comp_plus",
+    "comp_100",
+    "comp_all",
+    "comp_main_count",
+    "comp_plus_count",
+    "comp_100_count",
+    "comp_all_count",
+    "invested_co",
+    "invested_mp",
+    "invested_co_count",
+    "invested_mp_count",
+    "count_comp",
+    "count_speedrun",
+    "count_backlog",
+    "count_review",
+    "review_score",
+    "count_playing",
+    "count_retired",
+)
+
 
 class SearchInformation:
     """Class to hold search information extracted from the HLTB script."""
@@ -117,32 +142,6 @@ class SearchInformation:
                     break
 
 
-_HOWLONGTOBEAT_LABELS = (
-    "game_id",
-    "game_name",
-    "game_type",
-    "comp_main",
-    "comp_plus",
-    "comp_100",
-    "comp_all",
-    "comp_main_count",
-    "comp_plus_count",
-    "comp_100_count",
-    "comp_all_count",
-    "invested_co",
-    "invested_mp",
-    "invested_co_count",
-    "invested_mp_count",
-    "count_comp",
-    "count_speedrun",
-    "count_backlog",
-    "count_review",
-    "review_score",
-    "count_playing",
-    "count_retired",
-)
-
-
 class HowLongToBeat(BaseSource):
     """HowLongToBeat source for fetching game completion times."""
 
@@ -169,9 +168,13 @@ class HowLongToBeat(BaseSource):
 
         Returns:
             SourceResult: A dictionary containing the status, completion time data, and any error message if applicable.
+
+        Behavior:
+            - If successful, will return a SuccessResult with the data based on the selected_labels or _valid_labels.
+            - If unsuccessful, will return an error message indicating the failure reason.
         """
 
-        self._log(
+        self.logger.log(
             f"Fetching data for game '{game_name}'",
             level="info",
             verbose=verbose,
