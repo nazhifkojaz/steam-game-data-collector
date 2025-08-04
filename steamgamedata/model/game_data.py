@@ -38,7 +38,7 @@ class GameDataModel(BaseModel):
     total_reviews: int | None = Field(default=None)
     achievements_count: int | None = Field(default=None)
     achievements_percentage_average: float = Field(default=float("nan"))
-    achievements: list[dict[str, Any]] = Field(default_factory=list)
+    achievements_list: list[dict[str, Any]] = Field(default_factory=list)
     comp_main: int | None = Field(default=None)
     comp_plus: int | None = Field(default=None)
     comp_100: int | None = Field(default=None)
@@ -152,7 +152,7 @@ class GameDataModel(BaseModel):
         "languages",
         "content_rating",
         "monthly_active_player",
-        "achievements",
+        "achievements_list",
         mode="before",
     )
     def ensure_list(cls, v: list[Any] | str | int | None) -> list[Any]:

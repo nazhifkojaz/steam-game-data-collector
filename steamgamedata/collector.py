@@ -99,7 +99,7 @@ class DataCollector:
                 [
                     "achievements_count",
                     "achievements_percentage_average",
-                    "achievements",
+                    "achievements_list",
                 ],
             ),
         ]
