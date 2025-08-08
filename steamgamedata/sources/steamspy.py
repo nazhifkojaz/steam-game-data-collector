@@ -4,7 +4,7 @@ from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
 from steamgamedata.utils.ratelimit import logged_rate_limited
 
 _STEAMSPY_LABELS = (
-    "appid",
+    "steam_appid",
     "name",
     "developers",
     "publishers",
@@ -46,7 +46,7 @@ class SteamSpy(BaseSource):
 
         Returns:
             SourceResult: A dictionary containing the status, data, or any error message if applicable.
-            
+
         Behavior:
             - If successful, will return a SuccessResult with the data based on the selected_labels or _valid_labels.
             - If unsuccessful, will return an error message indicating the failure reason.
@@ -87,8 +87,8 @@ class SteamSpy(BaseSource):
 
     def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
         # repack / process the data if needed
-        tags = data.get("tags", {})
-        tags = {} if isinstance(tags, list) else tags
+        tags = data.get("tags", [])
+        tags = [tag for tag, count in tags.items()] if isinstance(tags, dict) else []
         return {
             "steam_appid": data.get("appid", None),
             "name": data.get("name", None),
@@ -107,5 +107,5 @@ class SteamSpy(BaseSource):
             "ccu": data.get("ccu", None),
             "languages": data.get("languages", None),
             "genres": data.get("genre", None),
-            "tags": [tag for tag, count in tags.items()],
+            "tags": tags,
         }
