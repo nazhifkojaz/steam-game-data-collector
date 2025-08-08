@@ -5,7 +5,17 @@ from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
 from steamgamedata.utils.ratelimit import logged_rate_limited
 
 _STEAMUSER_LABELS = (
-    "summary",
+    "steamid",
+    "community_visibility_state",
+    "profile_state",
+    "persona_name",
+    "profile_url",
+    "last_log_off",
+    "real_name",
+    "time_created",
+    "loc_country_code",
+    "loc_state_code",
+    "loc_city_id",
     "owned_games",
     "recently_played_games",
 )
@@ -13,6 +23,7 @@ _STEAMUSER_LABELS = (
 
 class CommunityVisibilityState(IntEnum):
     PRIVATE = 1
+    ONLY_FRIENDS = 2
     PUBLIC = 3
 
 
@@ -75,7 +86,7 @@ class SteamUser(BaseSource):
 
         if not self._api_key:
             return self._build_error_result(
-                "API Key is not assigned. Unable to fetch data",
+                "API Key is not assigned. Unable to fetch data.",
                 verbose=verbose,
             )
 
@@ -98,22 +109,21 @@ class SteamUser(BaseSource):
         }
 
         if data_packed["community_visibility_state"] == CommunityVisibilityState.PUBLIC:
-            if not selected_labels or "owned_games" in self._filter_valid_labels(
-                selected_labels=selected_labels
-            ):
-                owned_games_result = self._fetch_owned_games(
-                    steamid=steamid, verbose=verbose, include_free_games=include_free_games
-                )
-                if owned_games_result["success"]:
-                    data_packed["owned_games"] = owned_games_result["data"]
-            if not selected_labels or "recently_played_games" in self._filter_valid_labels(
-                selected_labels=selected_labels
-            ):
-                recently_played_games_result = self._fetch_recently_played_games(
-                    steamid=steamid, verbose=verbose
-                )
-                if recently_played_games_result["success"]:
-                    data_packed["recently_played_games"] = recently_played_games_result["data"]
+            owned_games_result = self._fetch_owned_games(
+                steamid=steamid, verbose=verbose, include_free_games=include_free_games
+            )
+            if owned_games_result["success"]:
+                data_packed["owned_games"] = owned_games_result["data"]
+            recently_played_games_result = self._fetch_recently_played_games(
+                steamid=steamid, verbose=verbose
+            )
+            if recently_played_games_result["success"]:
+                data_packed["recently_played_games"] = recently_played_games_result["data"]
+
+        if selected_labels:
+            data_packed = {
+                label: data_packed[label] for label in self._filter_valid_labels(selected_labels=selected_labels)
+            }
 
         return SuccessResult(success=True, data=data_packed)
 
