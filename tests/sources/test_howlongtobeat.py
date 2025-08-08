@@ -4,7 +4,6 @@ from steamgamedata.sources.howlongtobeat import HowLongToBeat
 
 class TestHowLongToBeat:
 
-
     @pytest.fixture(autouse=True)
     def mock_search_information(self, monkeypatch):
         class SearchInformation:
@@ -41,7 +40,7 @@ class TestHowLongToBeat:
 
         assert result["success"] == True
         assert result["data"]["game_id"] == 1234
-        assert result["data"]["game_name"] == "mock_name"
+        assert result["data"]["game_name"] == "Mock Game: The Adventure"
 
         # check if the not-listed labels are None as well
         assert result["data"]["comp_main"] == None

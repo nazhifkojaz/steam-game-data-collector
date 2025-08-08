@@ -31,7 +31,7 @@ class TestGamalytic:
 
         assert result["success"] == True
         assert result["data"]["steam_appid"] == "12345"
-        assert result["data"]["name"] == "mock_name"
+        assert result["data"]["name"] == "Mock Game: The Adventure"
 
         # should be none because in the mock data, I didn't provide the developers
         assert result["data"]["developers"] == None
@@ -53,7 +53,7 @@ class TestGamalytic:
 
         assert result["success"] == True
         assert result["data"]["steam_appid"] == "12345"
-        assert result["data"]["name"] == "mock_name"
+        assert result["data"]["name"] == "Mock Game: The Adventure"
         assert result["data"]["developers"] == None
         assert len(result["data"]) == 22
 
