@@ -253,7 +253,7 @@ class DataCollector:
         return result
 
     def get_games_active_player_data(
-        self, steam_appids: list[str], fill_na_as: int = -1, verbose: bool = True
+        self, steam_appids: str | list[str], fill_na_as: int = -1, verbose: bool = True
     ) -> pd.DataFrame:
         """Fetch active player data for multiple appids.
         Args:
@@ -265,8 +265,10 @@ class DataCollector:
             pd.DataFrame: DataFrame containing active player data for all appids.
         """
 
-        if len(steam_appids) <= 1:
-            raise ValueError("At least two appids are required.")
+        if not steam_appids:
+            return pd.DataFrame()
+        if isinstance(steam_appids, (str, int)):
+            steam_appids = [steam_appids] 
 
         all_months: set[str] = set()
         all_data = []
@@ -315,6 +317,10 @@ class DataCollector:
     def get_game_review(
         self, steam_appid: str, verbose: bool = True, review_only: bool = True
     ) -> pd.DataFrame:
+        
+        if not steam_appid or not isinstance(steam_appid, str):
+            raise ValueError("steam_appid must be a non-empty string.")
+        
         reviews_data = self.steamreview.fetch(
             steam_appid=steam_appid,
             verbose=verbose,
