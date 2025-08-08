@@ -1,3 +1,4 @@
+import time
 from typing import Any, Literal, TypedDict, cast
 
 from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
@@ -104,13 +105,13 @@ class SteamReview(BaseSource):
         page_data = self._fetch_page(steam_appid=steam_appid, params=params)
         if page_data["success"] != 1:
             return self._build_error_result(
-                f"API request failed for {steam_appid}.",
+                f"API request failed for game with appid {steam_appid}.",
                 verbose=verbose,
             )
 
         if page_data["cursor"] is None:
             return self._build_error_result(
-                f"Game with {steam_appid} is not found, or error on the request's cursor.",
+                f"Game with appid {steam_appid} is not found, or error on the request's cursor.",
                 verbose=verbose,
             )
 
@@ -128,7 +129,7 @@ class SteamReview(BaseSource):
             )
 
         reviews_data: list[dict[str, Any]] = []
-        while params["cursor"] != page_data["cursor"]:
+        while True:
             # log the total reviews
             if params["cursor"] == "*":
                 total_review = page_data["query_summary"].get("total_reviews", 0)
@@ -149,7 +150,13 @@ class SteamReview(BaseSource):
                             selected_labels=selected_labels,
                         )
                     }
-                reviews_data.append(self._transform_data(review, "review"))
+                reviews_data.append(review_data)
+
+            # add internal sleep
+            time.sleep(0.5)
+
+            if params["cursor"] == page_data["cursor"]:
+                break
 
             params["cursor"] = page_data["cursor"]
             page_data = self._fetch_page(steam_appid=steam_appid, params=params)
