@@ -59,7 +59,9 @@ class SteamCharts(BaseSource):
         response = self._make_request(endpoint=steam_appid, headers=self._get_request_header())
 
         if response.status_code != 200:
-            return self._build_error_result(f"Failed to fetch data with status code: {response.status_code}", verbose=verbose)
+            return self._build_error_result(
+                f"Failed to fetch data with status code: {response.status_code}", verbose=verbose
+            )
 
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -90,16 +92,16 @@ class SteamCharts(BaseSource):
 
         # Skip the "last 30 days" row
         player_data_rows = active_player_data_table.find_all("tr")[2:]  # type: ignore[attr-defined]
-        
+
         # check the cols whether the table structure is correct (only when the player_data_rows is populated)
         if len(player_data_rows) > 0:
             cols = [col.get_text(strip=True) for col in player_data_rows[0].find_all("td")]
             if len(cols) < 5:
                 return self._build_error_result(
-                    f"Failed to parse data, the structure of player data table is incorrect.",
-                    verbose=verbose
+                    "Failed to parse data, the structure of player data table is incorrect.",
+                    verbose=verbose,
                 )
-            
+
         data_packed = {
             "steam_appid": steam_appid,
             **self._transform_data(

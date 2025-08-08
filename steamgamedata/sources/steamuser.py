@@ -122,7 +122,8 @@ class SteamUser(BaseSource):
 
         if selected_labels:
             data_packed = {
-                label: data_packed[label] for label in self._filter_valid_labels(selected_labels=selected_labels)
+                label: data_packed[label]
+                for label in self._filter_valid_labels(selected_labels=selected_labels)
             }
 
         return SuccessResult(success=True, data=data_packed)

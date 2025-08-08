@@ -230,13 +230,14 @@ class SteamAchievements(BaseSource):
 
             schema_info = schema_lookup.get(name, {})
 
-            merged.append({
-                "name": name,
-                "percent": percent,
-                "display_name": schema_info.get("display_name", None),
-                "hidden": schema_info.get("hidden", None),
-                "description": schema_info.get("description", None),
-            })
+            merged.append(
+                {
+                    "name": name,
+                    "percent": percent,
+                    "display_name": schema_info.get("display_name", None),
+                    "hidden": schema_info.get("hidden", None),
+                    "description": schema_info.get("description", None),
+                }
+            )
 
         return merged
-
