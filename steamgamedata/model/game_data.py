@@ -31,7 +31,7 @@ class GameDataModel(BaseModel):
     active_player_24h: int | None = Field(default=None)
     peak_active_player_all_time: int | None = Field(default=None)
     monthly_active_player: list[dict[str, Any]] = Field(default_factory=list)
-    review_score: float = Field(default=float("nan"))
+    review_score: int | None = Field(default=None)
     review_score_desc: str | None = Field(default=None)
     total_positive: int | None = Field(default=None)
     total_negative: int | None = Field(default=None)
@@ -124,7 +124,6 @@ class GameDataModel(BaseModel):
         "price_initial",
         "price_final",
         "average_playtime_h",
-        "review_score",
         "achievements_percentage_average",
         mode="before",
     )
