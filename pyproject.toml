@@ -89,5 +89,6 @@ module = [
     "requests.*",
     "bs4.*",
     "fake_useragent.*",
+    "ratelimit.*"
 ]
 ignore_missing_imports = true
