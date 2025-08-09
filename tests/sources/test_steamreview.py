@@ -2,6 +2,7 @@ import pytest
 
 from steamgamedata.sources.steamreview import SteamReview
 
+
 class TestSteamReview:
     @pytest.mark.parametrize(
         "responses, language, expected_result",
@@ -9,50 +10,35 @@ class TestSteamReview:
             (
                 ["review_initial_page", "review_second_page"],
                 "all",
-                {"len_reviews": 4, "unique_languages": 3}
+                {"len_reviews": 4, "unique_languages": 3},
             ),
-            (
-                ["review_only_tchinese"],
-                "tchinese",
-                {"len_reviews": 1, "unique_languages": 1}
-            ),
+            (["review_only_tchinese"], "tchinese", {"len_reviews": 1, "unique_languages": 1}),
             (
                 ["review_empty_response"],
                 "wronglanguage",
-                {"len_reviews": 0, "unique_languages": 0}
-            )
+                {"len_reviews": 0, "unique_languages": 0},
+            ),
         ],
         ids=[
             "success_with_no_language_filtering",
             "success_with_valid_language_filtering",
-            "empty_with_invalid_language_filtering"
-        ]
+            "empty_with_invalid_language_filtering",
+        ],
     )
     def test_fetch_mode_review(
-        self,
-        mock_request_response,
-        request,
-        responses,
-        language,
-        expected_result
+        self, mock_request_response, request, responses, language, expected_result
     ):
         responses_data = []
         for response in responses:
-            responses_data.append(
-                {"json_data": request.getfixturevalue(response)}
-            )
-        
+            responses_data.append({"json_data": request.getfixturevalue(response)})
+
         if len(responses_data) > 1:
-            mock_request_response(
-                target_class=SteamReview,
-                side_effect=responses_data
-            )
+            mock_request_response(target_class=SteamReview, side_effect=responses_data)
         else:
             mock_request_response(
-                target_class=SteamReview,
-                json_data=responses_data[0]["json_data"]
+                target_class=SteamReview, json_data=responses_data[0]["json_data"]
             )
-        
+
         source = SteamReview()
         result = source.fetch(steam_appid="12345", language=language, mode="review")
 
@@ -71,15 +57,18 @@ class TestSteamReview:
         [
             (["recommendation_id"], ["recommendation_id"]),
             (["recommendation_id", "invalid_label"], ["recommendation_id"]),
-            (["author_steamid", "recommendation_id", "invalid_label"], ["recommendation_id", "author_steamid"]),
+            (
+                ["author_steamid", "recommendation_id", "invalid_label"],
+                ["recommendation_id", "author_steamid"],
+            ),
             (["invalid_label"], []),
         ],
         ids=[
             "normal_filtering",
             "filtering_with_invalid_label",
             "unordered_filtering_with_invalid_label",
-            "filtering_with_only_invalid_label"
-        ]
+            "filtering_with_only_invalid_label",
+        ],
     )
     def test_fetch_mode_review_with_label_filtering(
         self,
@@ -96,7 +85,7 @@ class TestSteamReview:
         result = source.fetch(steam_appid="12345", mode="review", selected_labels=selected_labels)
 
         assert result["success"] is True
-        
+
         result_keys = list(result["data"]["reviews"][0].keys())
         assert sorted(result_keys) == sorted(expected_labels)
         assert len(result["data"]["reviews"][0]) == len(expected_labels)
@@ -105,28 +94,22 @@ class TestSteamReview:
         "response, language, expected_total_reviews",
         [
             ("review_initial_page", "all", 4),
-            ("review_only_tchinese","tchinese",1),
-            ("review_empty_response","wronglanguage",0)
+            ("review_only_tchinese", "tchinese", 1),
+            ("review_empty_response", "wronglanguage", 0),
         ],
         ids=[
             "success_with_no_language_filtering",
             "success_with_valid_language_filtering",
-            "empty_with_invalid_language_filtering"
-        ]
+            "empty_with_invalid_language_filtering",
+        ],
     )
     def test_fetch_mode_summary(
-        self,
-        mock_request_response,
-        request,
-        response,
-        language,
-        expected_total_reviews
+        self, mock_request_response, request, response, language, expected_total_reviews
     ):
         mock_request_response(
-            target_class=SteamReview,
-            json_data=request.getfixturevalue(response)
+            target_class=SteamReview, json_data=request.getfixturevalue(response)
         )
-        
+
         source = SteamReview()
         result = source.fetch(steam_appid="12345", language=language, mode="summary")
 
@@ -138,15 +121,18 @@ class TestSteamReview:
         [
             (["review_score"], ["review_score"]),
             (["review_score", "invalid_label"], ["review_score"]),
-            (["total_reviews", "review_score", "invalid_label"], ["review_score", "total_reviews"]),
+            (
+                ["total_reviews", "review_score", "invalid_label"],
+                ["review_score", "total_reviews"],
+            ),
             (["invalid_label"], []),
         ],
         ids=[
             "normal_filtering",
             "filtering_with_invalid_label",
             "unordered_filtering_with_invalid_label",
-            "filtering_with_only_invalid_label"
-        ]
+            "filtering_with_only_invalid_label",
+        ],
     )
     def test_fetch_mode_summary_with_label_filtering(
         self,
@@ -163,7 +149,7 @@ class TestSteamReview:
         result = source.fetch(steam_appid="12345", mode="summary", selected_labels=selected_labels)
 
         assert result["success"] is True
-        
+
         result_keys = list(result["data"].keys())
         assert sorted(result_keys) == sorted(expected_labels)
         assert len(result["data"]) == len(expected_labels)
@@ -171,17 +157,33 @@ class TestSteamReview:
     @pytest.mark.parametrize(
         "mode, response, expected_error",
         [
-            ("summary", "review_error_unsuccessful_response", "API request failed for game with appid 12345."),
-            ("summary", "review_error_not_found_response", "Game with appid 12345 is not found, or error on the request's cursor."),
-            ("review", "review_error_unsuccessful_response", "API request failed for game with appid 12345."),
-            ("review", "review_error_not_found_response", "Game with appid 12345 is not found, or error on the request's cursor."),        
+            (
+                "summary",
+                "review_error_unsuccessful_response",
+                "API request failed for game with appid 12345.",
+            ),
+            (
+                "summary",
+                "review_error_not_found_response",
+                "Game with appid 12345 is not found, or error on the request's cursor.",
+            ),
+            (
+                "review",
+                "review_error_unsuccessful_response",
+                "API request failed for game with appid 12345.",
+            ),
+            (
+                "review",
+                "review_error_not_found_response",
+                "Game with appid 12345 is not found, or error on the request's cursor.",
+            ),
         ],
         ids=[
             "summary_unsuccessful",
             "summary_not_found_or_cursor_error",
             "review_unsuccessful",
             "review_not_found_or_cursor_error",
-        ]
+        ],
     )
     def test_fetch_error(
         self,
@@ -192,11 +194,10 @@ class TestSteamReview:
         expected_error,
     ):
         mock_request_response(
-            target_class=SteamReview,
-            json_data=request.getfixturevalue(response)
+            target_class=SteamReview, json_data=request.getfixturevalue(response)
         )
-        source=SteamReview()
-        result=source.fetch(steam_appid="12345", mode=mode)
+        source = SteamReview()
+        result = source.fetch(steam_appid="12345", mode=mode)
 
         assert result["success"] is False
         assert "error" in result

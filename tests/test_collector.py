@@ -1,8 +1,19 @@
-import pytest
 import pandas as pd
+import pytest
+
 from steamgamedata.collector import DataCollector
 from steamgamedata.model import GameDataModel
-from steamgamedata.sources import Gamalytic, howlongtobeat, HowLongToBeat, SteamAchievements, SteamCharts, SteamReview, SteamSpy, SteamStore
+from steamgamedata.sources import (
+    Gamalytic,
+    HowLongToBeat,
+    SteamAchievements,
+    SteamCharts,
+    SteamReview,
+    SteamSpy,
+    SteamStore,
+    howlongtobeat,
+)
+
 
 class TestDataCollector:
 
@@ -14,53 +25,49 @@ class TestDataCollector:
             def __init__(self, *args, **kwargs):
                 self.api_key = "mock_api_key"
                 self.search_url = "api/s/"
+
         monkeypatch.setattr(howlongtobeat, "SearchInformation", SearchInformation)
-        
+
         # then mock the request responses for each source
         # pair the source class with the mock data
         sources = [
             {Gamalytic: {"json_data": request.getfixturevalue("gamalytic_success_response_data")}},
             {HowLongToBeat: {"text_data": request.getfixturevalue("hltb_success_response_data")}},
-            {SteamAchievements: {"json_data": request.getfixturevalue("achievements_success_response_data")}},
-            {SteamCharts: {"text_data": request.getfixturevalue("steamcharts_success_response_data")}},
+            {
+                SteamAchievements: {
+                    "json_data": request.getfixturevalue("achievements_success_response_data")
+                }
+            },
+            {
+                SteamCharts: {
+                    "text_data": request.getfixturevalue("steamcharts_success_response_data")
+                }
+            },
             {SteamReview: {"json_data": request.getfixturevalue("review_only_tchinese")}},
             {SteamSpy: {"json_data": request.getfixturevalue("steamspy_success_response_data")}},
-            {SteamStore: {"json_data": request.getfixturevalue("steamstore_success_response_data")}},
+            {
+                SteamStore: {
+                    "json_data": request.getfixturevalue("steamstore_success_response_data")
+                }
+            },
         ]
 
         for source in sources:
             for target_class, data in source.items():
-                mock_request_response(
-                    target_class=target_class,
-                    **data
-                )
+                mock_request_response(target_class=target_class, **data)
 
     def test_fetch_raw_data(self):
         collector = DataCollector()
-        raw_data = collector._fetch_raw_data(
-            steam_appid="12345"
-        )
+        raw_data = collector._fetch_raw_data(steam_appid="12345")
 
         assert isinstance(raw_data, GameDataModel)
 
     @pytest.mark.parametrize(
         "appids, expected_len",
-        [
-            ("12345", 1),
-            (["12345", "12345"], 2),
-            ([], 0)
-        ],
-        ids=[
-            "single_appid",
-            "multiple_appids",
-            "empty_appids"
-        ]
+        [("12345", 1), (["12345", "12345"], 2), ([], 0)],
+        ids=["single_appid", "multiple_appids", "empty_appids"],
     )
-    def test_get_games_data(
-        self,
-        appids,
-        expected_len
-    ):
+    def test_get_games_data(self, appids, expected_len):
         collector = DataCollector()
         games_data = collector.get_games_data(steam_appids=appids)
 
@@ -73,22 +80,10 @@ class TestDataCollector:
 
     @pytest.mark.parametrize(
         "appids, expected_len",
-        [
-            ("12345", 1),
-            (["12345", "12345"], 2),
-            ([], 0)
-        ],
-        ids=[
-            "single_appid",
-            "multiple_appids",
-            "empty_appids"
-        ]
+        [("12345", 1), (["12345", "12345"], 2), ([], 0)],
+        ids=["single_appid", "multiple_appids", "empty_appids"],
     )
-    def test_get_games_active_player_data(
-        self,
-        appids,
-        expected_len
-    ):
+    def test_get_games_active_player_data(self, appids, expected_len):
         collector = DataCollector()
         active_player_data = collector.get_games_active_player_data(steam_appids=appids)
 
@@ -101,25 +96,12 @@ class TestDataCollector:
 
     @pytest.mark.parametrize(
         "review_only, has_reviews_labels",
-        [
-            (True, False),
-            (False, True)
-        ],
-        ids=[
-            "review_only_true",
-            "review_only_false"
-        ]
+        [(True, False), (False, True)],
+        ids=["review_only_true", "review_only_false"],
     )
-    def test_get_game_review(
-        self,
-        review_only,
-        has_reviews_labels
-    ):
+    def test_get_game_review(self, review_only, has_reviews_labels):
         collector = DataCollector()
-        review_data = collector.get_game_review(
-            steam_appid="12345",
-            review_only=review_only
-        )
+        review_data = collector.get_game_review(steam_appid="12345", review_only=review_only)
 
         assert isinstance(review_data, pd.DataFrame)
 

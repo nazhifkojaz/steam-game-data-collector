@@ -3,7 +3,7 @@ from typing import Any, Literal, NamedTuple
 
 import pandas as pd
 
-import steamgamedata.sources as sources
+from steamgamedata import sources
 from steamgamedata.model.game_data import GameDataModel
 from steamgamedata.utils.ratelimit import logged_rate_limited
 
@@ -292,8 +292,8 @@ class DataCollector:
                 game_record.update(
                     {
                         "name": active_player_data["data"].get("name"),
-                        "peak_active_player_all_time": active_player_data["data"].get(
-                            "peak_active_player_all_time"
+                        "peak_active_player_all_time": (
+                            active_player_data["data"].get("peak_active_player_all_time")
                         ),
                     }
                 )

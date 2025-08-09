@@ -1,5 +1,7 @@
 import pytest
+
 from steamgamedata.sources.steamspy import SteamSpy
+
 
 class TestSteamSpy:
 
@@ -20,12 +22,8 @@ class TestSteamSpy:
         source = SteamSpy()
 
         return source.fetch(steam_appid=steam_appid, selected_labels=selected_labels)
-    
-    def test_fetch_success(
-        self,
-        mock_request_response,
-        steamspy_success_response_data
-    ):
+
+    def test_fetch_success(self, mock_request_response, steamspy_success_response_data):
         result = self._setup_fetch(
             mock_request_response=mock_request_response,
             response_data=steamspy_success_response_data,
@@ -35,8 +33,7 @@ class TestSteamSpy:
         assert result["data"]["steam_appid"] == 12345
         assert result["data"]["name"] == "Mock Game: The Adventure"
         assert len(result["data"]) == 18
-        
-    
+
     @pytest.mark.parametrize(
         "selected_labels, expected_labels",
         [
@@ -49,8 +46,8 @@ class TestSteamSpy:
             "normal_filtering",
             "filtering_with_invalid_label",
             "filter_labels_unordered",
-            "filtering_with_only_invalid_label"
-        ]
+            "filtering_with_only_invalid_label",
+        ],
     )
     def test_fetch_success_with_filtering(
         self,
@@ -62,7 +59,7 @@ class TestSteamSpy:
         result = self._setup_fetch(
             mock_request_response=mock_request_response,
             response_data=steamspy_success_response_data,
-            selected_labels=selected_labels
+            selected_labels=selected_labels,
         )
 
         assert result["success"] is True
@@ -85,9 +82,7 @@ class TestSteamSpy:
         assert result["error"] == "Failed to connect to API. Status code: 400"
 
     def test_fetch_error_game_not_found(
-        self,
-        mock_request_response,
-        steamspy_not_found_response_data
+        self, mock_request_response, steamspy_not_found_response_data
     ):
         result = self._setup_fetch(
             mock_request_response=mock_request_response,

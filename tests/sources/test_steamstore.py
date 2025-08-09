@@ -3,6 +3,7 @@ import pytest
 from steamgamedata.sources import steamstore
 from steamgamedata.sources.steamstore import SteamStore
 
+
 class TestSteamStore:
 
     def _setup_fetch(
@@ -14,24 +15,18 @@ class TestSteamStore:
         selected_labels=None,
     ):
         mock_request_response(
-            target_class=SteamStore,
-            status_code=status_code,
-            json_data=response_data
+            target_class=SteamStore, status_code=status_code, json_data=response_data
         )
 
         # predefined with the default region since if the region/language inputted invalid, it'll default to the region where the user ip's region
         source = SteamStore(region="us", language="english")
 
         return source.fetch(steam_appid=steam_appid, selected_labels=selected_labels)
-    
-    def test_fetch_success(
-        self,
-        mock_request_response,
-        steamstore_success_response_data
-    ):
+
+    def test_fetch_success(self, mock_request_response, steamstore_success_response_data):
         result = self._setup_fetch(
             mock_request_response=mock_request_response,
-            response_data=steamstore_success_response_data
+            response_data=steamstore_success_response_data,
         )
 
         assert result["success"] is True
@@ -54,15 +49,15 @@ class TestSteamStore:
             "normal_filtering",
             "filtering_with_invalid_label",
             "filter_labels_unordered",
-            "filtering_with_only_invalid_label"
-        ]
+            "filtering_with_only_invalid_label",
+        ],
     )
     def test_fetch_with_filtering(
         self,
         mock_request_response,
         steamstore_success_response_data,
         selected_labels,
-        expected_labels
+        expected_labels,
     ):
         result = self._setup_fetch(
             mock_request_response=mock_request_response,
@@ -75,7 +70,7 @@ class TestSteamStore:
         result_keys = list(result["data"].keys())
         assert sorted(result_keys) == sorted(expected_labels)
         assert len(result["data"]) == len(expected_labels)
-        
+
     def test_fetch_error_connection_fail(
         self,
         mock_request_response,
@@ -90,9 +85,7 @@ class TestSteamStore:
         assert result["error"] == "Failed to connect to API. Status code: 400."
 
     def test_fetch_error_game_not_found(
-        self,
-        mock_request_response,
-        steamstore_not_found_response_data
+        self, mock_request_response, steamstore_not_found_response_data
     ):
         result = self._setup_fetch(
             mock_request_response=mock_request_response,
@@ -101,4 +94,7 @@ class TestSteamStore:
 
         assert result["success"] is False
         assert "error" in result
-        assert result["error"] == "Failed to fetch data for appid 12345, or appid is not available in the specified region (us) or language (english)."
+        assert (
+            result["error"]
+            == "Failed to fetch data for appid 12345, or appid is not available in the specified region (us) or language (english)."
+        )

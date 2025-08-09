@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
 from steamgamedata.utils.ratelimit import logged_rate_limited
@@ -168,7 +168,7 @@ class SteamAchievements(BaseSource):
 
     def _calculate_average_percentage(
         self, achievements: list[dict[str, Any]]
-    ) -> Tuple[list[dict[str, Any]], int, float]:
+    ) -> tuple[list[dict[str, Any]], int, float]:
         """Process achievements data. (assuming achievements is not empty)
         Args:
             achievements (list of dictionaries): list of achievements.

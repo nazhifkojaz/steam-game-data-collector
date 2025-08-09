@@ -14,11 +14,11 @@ __all__ = [
     "Gamalytic",
     "HowLongToBeat",
     "SourceResult",
-    "SuccessResult",
     "SteamAchievements",
     "SteamCharts",
     "SteamReview",
     "SteamSpy",
     "SteamStore",
     "SteamUser",
+    "SuccessResult",
 ]

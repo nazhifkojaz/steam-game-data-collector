@@ -1,12 +1,15 @@
+from unittest.mock import Mock
+
 import pytest
 import requests
 
-from unittest.mock import Mock
 from steamgamedata.sources.base import BaseSource
+
 
 @pytest.fixture
 def mock_request_response(monkeypatch):
     """Factory fixture to mock a response and patch _make_request in the target class"""
+
     def _patch_method(
         target_class,
         method_name="_make_request",
@@ -35,11 +38,7 @@ def mock_request_response(monkeypatch):
 
         if side_effect:
             responses = [
-                Response(
-                    r.get("status_code", 200),
-                    r.get("json_data"),
-                    r.get("text_data")
-                )
+                Response(r.get("status_code", 200), r.get("json_data"), r.get("text_data"))
                 for r in side_effect
             ]
             mock_method = Mock(side_effect=responses)
@@ -50,6 +49,7 @@ def mock_request_response(monkeypatch):
 
     return _patch_method
 
+
 @pytest.fixture
 def base_source_fixture():
 
@@ -58,8 +58,11 @@ def base_source_fixture():
         _valid_labels_set = frozenset(_valid_labels)
         _base_url = "https://api.testurl.com/"
 
-        def fetch(self, *args, **kwargs): pass
-        def _transform_data(self, data): pass
+        def fetch(self, *args, **kwargs):
+            pass
+
+        def _transform_data(self, data):
+            pass
 
     return _TestSource()
 
@@ -69,13 +72,14 @@ def gamalytic_success_response_data():
     # since we allow impartial result and return pre-defined labels, no need to cover everything
     return {
         "steamId": "12345",
-        "name": 'Mock Game: The Adventure',
+        "name": "Mock Game: The Adventure",
         "price": 12.34,
         "reviews": 1234,
         "reviewsSteam": 1234,
         "followers": 1234,
         "avgPlaytime": 12.34,
     }
+
 
 @pytest.fixture
 def hltb_success_response_data():
@@ -112,33 +116,49 @@ def hltb_success_but_not_found_data():
 
     return data
 
+
 @pytest.fixture
 def achievements_success_response_data():
     return {
-    "achievementpercentages":
-        {
-        "achievements":
-            [
-            {"name": "Mock_1", "percent": "12.3"},
-            {"name": "Mock_2", "percent": "12.3"}
+        "achievementpercentages": {
+            "achievements": [
+                {"name": "Mock_1", "percent": "12.3"},
+                {"name": "Mock_2", "percent": "12.3"},
             ]
         }
     }
 
+
 @pytest.fixture
 def scheme_success_response_data():
     return {
-        'game': {
-            'gameName': 'Mock Game: The Adventure',
-            'gameVersion': '1',
-            'availableGameStats': {
-                'achievements': [
-                    {'name': 'Mock_1', 'defaultValue': 0, 'displayName': 'Mock One', 'hidden': 0, 'description': 'Clear Mock One', 'icon': 'https://someurl.com', 'icongray': 'https://anotherurl.com',},
-                    {'name': 'Mock_2', 'defaultValue': 0, 'displayName': 'Mock Two', 'hidden': 1, 'icon': 'https://someurl.com', 'icongray': 'https://anotherurl.com',}
+        "game": {
+            "gameName": "Mock Game: The Adventure",
+            "gameVersion": "1",
+            "availableGameStats": {
+                "achievements": [
+                    {
+                        "name": "Mock_1",
+                        "defaultValue": 0,
+                        "displayName": "Mock One",
+                        "hidden": 0,
+                        "description": "Clear Mock One",
+                        "icon": "https://someurl.com",
+                        "icongray": "https://anotherurl.com",
+                    },
+                    {
+                        "name": "Mock_2",
+                        "defaultValue": 0,
+                        "displayName": "Mock Two",
+                        "hidden": 1,
+                        "icon": "https://someurl.com",
+                        "icongray": "https://anotherurl.com",
+                    },
                 ]
-            }
+            },
         }
     }
+
 
 @pytest.fixture
 def steamcharts_success_response_data():
@@ -199,6 +219,7 @@ def steamcharts_success_response_data():
     """
     return data
 
+
 @pytest.fixture
 def steamcharts_error_response_no_app_title():
     data = """
@@ -215,6 +236,7 @@ def steamcharts_error_response_no_app_title():
     </html>
     """
     return data
+
 
 @pytest.fixture
 def steamcharts_error_response_incorrect_appstat_count():
@@ -236,6 +258,7 @@ def steamcharts_error_response_incorrect_appstat_count():
     </html>
     """
     return data
+
 
 @pytest.fixture
 def steamcharts_error_response_incorrect_appstat_structure():
@@ -267,6 +290,7 @@ def steamcharts_error_response_incorrect_appstat_structure():
     """
     return data
 
+
 @pytest.fixture
 def steamcharts_error_response_no_player_data_table():
     data = """
@@ -296,6 +320,7 @@ def steamcharts_error_response_no_player_data_table():
     </html>
     """
     return data
+
 
 @pytest.fixture
 def steamcharts_error_response_player_data_table_incorrect_structure():
@@ -353,6 +378,7 @@ def steamcharts_error_response_player_data_table_incorrect_structure():
     """
     return data
 
+
 @pytest.fixture
 def steamspy_success_response_data():
     return {
@@ -361,6 +387,7 @@ def steamspy_success_response_data():
         "positive": 1234,
         "negative": 12,
     }
+
 
 @pytest.fixture
 def steamspy_not_found_response_data():
@@ -373,6 +400,7 @@ def steamspy_not_found_response_data():
         "negative": 0,
     }
 
+
 @pytest.fixture
 def steamstore_success_response_data():
     return {
@@ -382,65 +410,62 @@ def steamstore_success_response_data():
                 "type": "mock",
                 "name": "Mock Game: The Adventure",
                 "steam_appid": 12345,
-                "ratings": {
-                    "pegi": {"rating":"12", "descriptors": "Bad Language"}
-                }
-            }
+                "ratings": {"pegi": {"rating": "12", "descriptors": "Bad Language"}},
+            },
         }
     }
 
+
 @pytest.fixture
 def steamstore_not_found_response_data():
-    return {
-        "12345": {
-            "success": False
-        }
-    }
+    return {"12345": {"success": False}}
+
 
 @pytest.fixture
 def usersummary_success_response_open_profile():
     return {
         "response": {
-            "players": [{
-                "steamid": "12345",
-                "communityvisibilitystate": 3,
-                "profilestate": 1,
-                "personaname": "Mock Player",
-                "profileurl": "https://mocksteam.com/profiles/12345",
-                "lastlogoff": 123456789,
-                "realname": "Mock Player The Third",
-                "timecreated": 123456789,
-                "loccountrycode": "MO",
-                "locstatecode": "CK",
-                "loccityid": 12,
-            }]
+            "players": [
+                {
+                    "steamid": "12345",
+                    "communityvisibilitystate": 3,
+                    "profilestate": 1,
+                    "personaname": "Mock Player",
+                    "profileurl": "https://mocksteam.com/profiles/12345",
+                    "lastlogoff": 123456789,
+                    "realname": "Mock Player The Third",
+                    "timecreated": 123456789,
+                    "loccountrycode": "MO",
+                    "locstatecode": "CK",
+                    "loccityid": 12,
+                }
+            ]
         }
     }
+
 
 @pytest.fixture
 def usersummary_success_response_closed_profile():
     return {
         "response": {
             "players": [
-            {
-                "steamid": "12345",
-                "communityvisibilitystate": 1,
-                "profilestate": 1,
-                "personaname": "Private Mockو",
-                "profileurl": "https://mocksteam.com/profiles/12345",
-                "personastate": 0
-            }
+                {
+                    "steamid": "12345",
+                    "communityvisibilitystate": 1,
+                    "profilestate": 1,
+                    "personaname": "Private Mockو",
+                    "profileurl": "https://mocksteam.com/profiles/12345",
+                    "personastate": 0,
+                }
             ]
         }
     }
 
+
 @pytest.fixture
 def usersummary_not_found_response_data():
-    return {
-        "response":{
-            "players":[]
-        }
-    }
+    return {"response": {"players": []}}
+
 
 @pytest.fixture
 def owned_games_exclude_free_response():
@@ -448,17 +473,12 @@ def owned_games_exclude_free_response():
         "response": {
             "game_count": 2,
             "games": [
-            {
-                "appid": 12345,
-                "playtime_forever": 123
-            },
-            {
-                "appid": 23456,
-                "playtime_forever": 1234
-            },
-            ]
+                {"appid": 12345, "playtime_forever": 123},
+                {"appid": 23456, "playtime_forever": 1234},
+            ],
         }
     }
+
 
 @pytest.fixture
 def owned_games_include_free_response():
@@ -466,27 +486,18 @@ def owned_games_include_free_response():
         "response": {
             "game_count": 3,
             "games": [
-            {
-                "appid": 12345,
-                "playtime_forever": 123
-            },
-            {
-                "appid": 23456,
-                "playtime_forever": 1234
-            },
-            {
-                "appid": 570, # free game / Dota 2
-                "playtime_forever": 12345
-            }
-            ]
+                {"appid": 12345, "playtime_forever": 123},
+                {"appid": 23456, "playtime_forever": 1234},
+                {"appid": 570, "playtime_forever": 12345},  # free game / Dota 2
+            ],
         }
     }
 
+
 @pytest.fixture
 def owned_games_no_games_owned():
-    return {
-        "response": {}
-    }
+    return {"response": {}}
+
 
 @pytest.fixture
 def owned_games_only_own_free_games():
@@ -498,9 +509,10 @@ def owned_games_only_own_free_games():
                     "appid": 570,
                     "playtime_forever": 12345,
                 }
-            ]
+            ],
         }
     }
+
 
 @pytest.fixture
 def recently_played_games_active_player_response_data():
@@ -508,21 +520,22 @@ def recently_played_games_active_player_response_data():
         "response": {
             "total_count": 2,
             "games": [
-            {
-                "appid": 12345,
-                "name": "Mock Game",
-                "playtime_2weeks": 12,
-                "playtime_forever": 123,
-            },
-            {
-                "appid": 23456,
-                "name": "Mock Online",
-                "playtime_2weeks": 1,
-                "playtime_forever": 1234,
-            }
-            ]
+                {
+                    "appid": 12345,
+                    "name": "Mock Game",
+                    "playtime_2weeks": 12,
+                    "playtime_forever": 123,
+                },
+                {
+                    "appid": 23456,
+                    "name": "Mock Online",
+                    "playtime_2weeks": 1,
+                    "playtime_forever": 1234,
+                },
+            ],
         }
     }
+
 
 @pytest.fixture
 def recently_played_games_free_player_response_data():
@@ -536,15 +549,15 @@ def recently_played_games_free_player_response_data():
                     "playtime_2weeks": 1234,
                     "playtime_forever": 12345,
                 }
-            ]
+            ],
         }
     }
 
+
 @pytest.fixture
 def recently_played_games_inactive_player_response_data():
-    return {
-        "response": {}
-    }
+    return {"response": {}}
+
 
 @pytest.fixture
 def review_initial_page():
@@ -556,42 +569,43 @@ def review_initial_page():
             "review_score_desc": "Mostly Positive",
             "total_positive": 2,
             "total_negative": 2,
-            "total_reviews": 4
+            "total_reviews": 4,
         },
         "reviews": [
             {
-            "recommendationid": "1",
-            "author": {
-                "steamid": "1",
-                "num_games_owned": 1,
-                "num_reviews": 1,
-                "playtime_forever": 3,
-                "playtime_last_two_weeks": 0,
-                "playtime_at_review": 3,
-                "last_played": 12345
-            },
-            "language": "english",
-            "review": "mock review",
-            "voted_up": True,
+                "recommendationid": "1",
+                "author": {
+                    "steamid": "1",
+                    "num_games_owned": 1,
+                    "num_reviews": 1,
+                    "playtime_forever": 3,
+                    "playtime_last_two_weeks": 0,
+                    "playtime_at_review": 3,
+                    "last_played": 12345,
+                },
+                "language": "english",
+                "review": "mock review",
+                "voted_up": True,
             },
             {
-            "recommendationid": "2",
-            "author": {
-                "steamid": "2",
-                "num_games_owned": 1,
-                "num_reviews": 1,
-                "playtime_forever": 2,
-                "playtime_last_two_weeks": 1,
-                "playtime_at_review": 2,
-                "last_played": 12345
-            },
-            "language": "tchinese",
-            "review": "mock review but in tchinese",
-            "voted_up": False,
+                "recommendationid": "2",
+                "author": {
+                    "steamid": "2",
+                    "num_games_owned": 1,
+                    "num_reviews": 1,
+                    "playtime_forever": 2,
+                    "playtime_last_two_weeks": 1,
+                    "playtime_at_review": 2,
+                    "last_played": 12345,
+                },
+                "language": "tchinese",
+                "review": "mock review but in tchinese",
+                "voted_up": False,
             },
         ],
-        "cursor": "nextcursor"
+        "cursor": "nextcursor",
     }
+
 
 @pytest.fixture
 def review_second_page():
@@ -602,60 +616,49 @@ def review_second_page():
         },
         "reviews": [
             {
-            "recommendationid": "3",
-            "author": {
-                "steamid": "3",
-                "num_games_owned": 1,
-                "num_reviews": 1,
-                "playtime_forever": 3,
-                "playtime_last_two_weeks": 0,
-                "playtime_at_review": 3,
-                "last_played": 12345,
-            },
-            "language": "english",
-            "review": "mock review",
-            "voted_up": True,
+                "recommendationid": "3",
+                "author": {
+                    "steamid": "3",
+                    "num_games_owned": 1,
+                    "num_reviews": 1,
+                    "playtime_forever": 3,
+                    "playtime_last_two_weeks": 0,
+                    "playtime_at_review": 3,
+                    "last_played": 12345,
+                },
+                "language": "english",
+                "review": "mock review",
+                "voted_up": True,
             },
             {
-            "recommendationid": "4",
-            "author": {
-                "steamid": "4",
-                "num_games_owned": 1,
-                "num_reviews": 1,
-                "playtime_forever": 2,
-                "playtime_last_two_weeks": 1,
-                "playtime_at_review": 2,
-                "last_played": 12345,
-            },
-            "language": "schinese",
-            "review": "another mock review",
-            "voted_up": False,
+                "recommendationid": "4",
+                "author": {
+                    "steamid": "4",
+                    "num_games_owned": 1,
+                    "num_reviews": 1,
+                    "playtime_forever": 2,
+                    "playtime_last_two_weeks": 1,
+                    "playtime_at_review": 2,
+                    "last_played": 12345,
+                },
+                "language": "schinese",
+                "review": "another mock review",
+                "voted_up": False,
             },
         ],
-        "cursor": "nextcursor"
+        "cursor": "nextcursor",
     }
+
 
 @pytest.fixture
 def review_error_not_found_response():
-    return {
-        "success": 1,
-        "query_summary": {
-            "num_reviews": 0
-        },
-        "reviews": [],
-        "cursor": None
-    }
+    return {"success": 1, "query_summary": {"num_reviews": 0}, "reviews": [], "cursor": None}
+
 
 @pytest.fixture
 def review_error_unsuccessful_response():
-    return {
-        "success": 0,
-        "query_summary": {
-            "num_reviews": 0
-        },
-        "reviews": [],
-        "cursor": None
-    }
+    return {"success": 0, "query_summary": {"num_reviews": 0}, "reviews": [], "cursor": None}
+
 
 @pytest.fixture
 def review_empty_response():
@@ -667,11 +670,12 @@ def review_empty_response():
             "review_score_desc": "No user reviews",
             "total_positive": 0,
             "total_negative": 0,
-            "total_reviews": 0
+            "total_reviews": 0,
         },
         "reviews": [],
-        "cursor": "*"
+        "cursor": "*",
     }
+
 
 @pytest.fixture
 def review_only_tchinese():
@@ -682,27 +686,28 @@ def review_only_tchinese():
             "review_score": 0,
             "total_positive": 0,
             "total_negative": 1,
-            "total_reviews": 1
+            "total_reviews": 1,
         },
         "reviews": [
             {
-            "recommendationid": "2",
-            "author": {
-                "steamid": "2",
-                "num_games_owned": 1,
-                "num_reviews": 1,
-                "playtime_forever": 3,
-                "playtime_last_two_weeks": 0,
-                "playtime_at_review": 3,
-                "last_played": 12345
-            },
-            "language": "tchinese",
-            "review": "mock review but in tchinese",
-            "voted_up": False,
+                "recommendationid": "2",
+                "author": {
+                    "steamid": "2",
+                    "num_games_owned": 1,
+                    "num_reviews": 1,
+                    "playtime_forever": 3,
+                    "playtime_last_two_weeks": 0,
+                    "playtime_at_review": 3,
+                    "last_played": 12345,
+                },
+                "language": "tchinese",
+                "review": "mock review but in tchinese",
+                "voted_up": False,
             },
         ],
-        "cursor": "*"
+        "cursor": "*",
     }
+
 
 @pytest.fixture
 def raw_data_normal():
@@ -715,21 +720,23 @@ def raw_data_normal():
         "owners": 1234,
         "tags": ["RPG", "MOBA"],
         "average_playtime_h": 1234,
-        "release_date": "Jan 1, 2025"
+        "release_date": "Jan 1, 2025",
     }
+
 
 @pytest.fixture
 def raw_data_invalid_types():
     # raw_data with some invalid types
     return {
-        "steam_appid": 23456, # should be a string,
-        "name": "mock game 2", # correct type
-        "developers": "devmock 3", # should be a list of string
-        "price_final": "12.34", # should be a float
-        "owners": "1234", # should be an integer
+        "steam_appid": 23456,  # should be a string,
+        "name": "mock game 2",  # correct type
+        "developers": "devmock 3",  # should be a list of string
+        "price_final": "12.34",  # should be a float
+        "owners": "1234",  # should be an integer
         "tags": ["RPG", "MOBA"],
-        "release_date": "Not a date" # should be a None
+        "release_date": "Not a date",  # should be a None
     }
+
 
 @pytest.fixture
 def raw_data_missing_steam_appid():
@@ -738,5 +745,5 @@ def raw_data_missing_steam_appid():
         "name": "mock game 3",
         "developers": ["devmock 4"],
         "price_final": 12.34,
-        "owners": 1234, # missing steam_appid
+        "owners": 1234,  # missing steam_appid
     }

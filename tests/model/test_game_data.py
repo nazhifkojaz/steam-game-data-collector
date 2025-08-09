@@ -1,10 +1,12 @@
-import pytest
-
 from datetime import datetime
+
+import pytest
 from pydantic import ValidationError
+
 from steamgamedata.model.game_data import GameDataModel
 
-class TestGameDataModel():
+
+class TestGameDataModel:
     def test_game_data_model_normal_data(self, raw_data_normal):
         game_data = GameDataModel(**raw_data_normal)
 
@@ -20,8 +22,7 @@ class TestGameDataModel():
 
         # check if the model has all fields (50 fields, with the missing ones set to its default value)
         included_fields = {
-            name for name, fields in GameDataModel.model_fields.items()
-            if not fields.exclude
+            name for name, fields in GameDataModel.model_fields.items() if not fields.exclude
         }
         assert set(game_data.model_dump().keys()) == set(included_fields)
 
@@ -35,7 +36,7 @@ class TestGameDataModel():
         assert game_data.release_date is None
 
         # check if average_playtime_h is NaN and average_playtime is None
-        assert game_data.average_playtime_h != game_data.average_playtime_h # nan check
+        assert game_data.average_playtime_h != game_data.average_playtime_h  # nan check
         assert game_data.average_playtime is None
 
         # check if steam_appid is set correctly
@@ -68,10 +69,7 @@ class TestGameDataModel():
             ("raw_data_normal", 1234 * 3600, (datetime.now() - datetime(2025, 1, 1)).days),
             ("raw_data_invalid_types", None, None),
         ],
-        ids=[
-            "normal_data",
-            "missing_playtime_and_days_since_release"
-        ]
+        ids=["normal_data", "missing_playtime_and_days_since_release"],
     )
     def test_game_data_model_preprocess_data(
         self,
@@ -105,9 +103,9 @@ class TestGameDataModel():
         assert recap_data["price_final"] == 12.34
         assert recap_data["owners"] == 1234
         assert recap_data["tags"] == ["RPG", "MOBA"]
-        assert recap_data["average_playtime"] == 1234 * 3600 # check if conversion is a success
-        assert recap_data["total_reviews"] == None # unset in raw data, should be None
+        assert recap_data["average_playtime"] == 1234 * 3600  # check if conversion is a success
+        assert recap_data["total_reviews"] is None  # unset in raw data, should be None
 
         # check the length of the recap data
         assert len(recap_data) == 29
-        assert "count_retired" not in recap_data # this field should not be in recap data
+        assert "count_retired" not in recap_data  # this field should not be in recap data
