@@ -29,8 +29,8 @@ jobs:
         poetry install --with dev --sync
         echo "$(poetry env info -p)/bin" >> $GITHUB_PATH
     
-    - name: Ruff check (for steamgamedata and tests)
-      run: ruff check --format=github steamgamedata/ tests/
+    - name: Run Ruff
+      run: poetry run ruff check steamgamedata/ tests/ --output-format=github
     
     - name: Formatting with Black (for steamgamedata and tests)
       run: black --check --diff steamgamedata/ tests/
