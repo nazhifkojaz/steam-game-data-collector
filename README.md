@@ -179,7 +179,7 @@ Key fields include:
 ## Development & Contributions
 
 1. **Fork** the repo & create a feature branch from `main`.
-2. **Run style checks** locally:
+2. **Run style checks and tests** locally:
 ```bash
 poetry run ruff check gameinsights/ tests/
 poetry run black gameinsights/ tests/
