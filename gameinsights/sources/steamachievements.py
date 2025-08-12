@@ -1,7 +1,7 @@
-from typing import Any, Tuple
+from typing import Any
 
-from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
-from steamgamedata.utils.ratelimit import logged_rate_limited
+from gameinsights.sources.base import BaseSource, SourceResult, SuccessResult
+from gameinsights.utils.ratelimit import logged_rate_limited
 
 _STEAMACHIEVEMENT_LABELS = (
     "achievements_count",
@@ -168,7 +168,7 @@ class SteamAchievements(BaseSource):
 
     def _calculate_average_percentage(
         self, achievements: list[dict[str, Any]]
-    ) -> Tuple[list[dict[str, Any]], int, float]:
+    ) -> tuple[list[dict[str, Any]], int, float]:
         """Process achievements data. (assuming achievements is not empty)
         Args:
             achievements (list of dictionaries): list of achievements.
@@ -230,13 +230,14 @@ class SteamAchievements(BaseSource):
 
             schema_info = schema_lookup.get(name, {})
 
-            merged.append({
-                "name": name,
-                "percent": percent,
-                "display_name": schema_info.get("display_name", None),
-                "hidden": schema_info.get("hidden", None),
-                "description": schema_info.get("description", None),
-            })
+            merged.append(
+                {
+                    "name": name,
+                    "percent": percent,
+                    "display_name": schema_info.get("display_name", None),
+                    "hidden": schema_info.get("hidden", None),
+                    "description": schema_info.get("description", None),
+                }
+            )
 
         return merged
-

@@ -3,9 +3,9 @@ from typing import Any, Literal, NamedTuple
 
 import pandas as pd
 
-import steamgamedata.sources as sources
-from steamgamedata.model.game_data import GameDataModel
-from steamgamedata.utils.ratelimit import logged_rate_limited
+from gameinsights import sources
+from gameinsights.model.game_data import GameDataModel
+from gameinsights.utils.ratelimit import logged_rate_limited
 
 
 class SourceConfig(NamedTuple):
@@ -13,7 +13,7 @@ class SourceConfig(NamedTuple):
     fields: list[str]
 
 
-class DataCollector:
+class Collector:
     def __init__(
         self,
         region: str = "us",
@@ -65,9 +65,11 @@ class DataCollector:
                     "name",
                     "developers",
                     "publishers",
+                    "type",
                     "price_currency",
                     "price_initial",
                     "price_final",
+                    "categories",
                     "platforms",
                     "genres",
                     "metacritic_score",
@@ -253,7 +255,7 @@ class DataCollector:
         return result
 
     def get_games_active_player_data(
-        self, steam_appids: list[str], fill_na_as: int = -1, verbose: bool = True
+        self, steam_appids: str | list[str], fill_na_as: int = -1, verbose: bool = True
     ) -> pd.DataFrame:
         """Fetch active player data for multiple appids.
         Args:
@@ -265,8 +267,10 @@ class DataCollector:
             pd.DataFrame: DataFrame containing active player data for all appids.
         """
 
-        if len(steam_appids) <= 1:
-            raise ValueError("At least two appids are required.")
+        if not steam_appids:
+            return pd.DataFrame()
+        if isinstance(steam_appids, (str, int)):
+            steam_appids = [steam_appids]
 
         all_months: set[str] = set()
         all_data = []
@@ -290,8 +294,8 @@ class DataCollector:
                 game_record.update(
                     {
                         "name": active_player_data["data"].get("name"),
-                        "peak_active_player_all_time": active_player_data["data"].get(
-                            "peak_active_player_all_time"
+                        "peak_active_player_all_time": (
+                            active_player_data["data"].get("peak_active_player_all_time")
                         ),
                     }
                 )
@@ -315,6 +319,10 @@ class DataCollector:
     def get_game_review(
         self, steam_appid: str, verbose: bool = True, review_only: bool = True
     ) -> pd.DataFrame:
+
+        if not steam_appid or not isinstance(steam_appid, str):
+            raise ValueError("steam_appid must be a non-empty string.")
+
         reviews_data = self.steamreview.fetch(
             steam_appid=steam_appid,
             verbose=verbose,

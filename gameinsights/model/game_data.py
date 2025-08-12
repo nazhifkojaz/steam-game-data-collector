@@ -15,6 +15,7 @@ class GameDataModel(BaseModel):
     name: str | None = Field(default=None)
     developers: list[str] = Field(default_factory=list)
     publishers: list[str] = Field(default_factory=list)
+    type: str | None = Field(default=None)
     price_currency: str | None = Field(default=None)
     price_initial: float = Field(default=float("nan"))
     price_final: float = Field(default=float("nan"))
@@ -31,7 +32,7 @@ class GameDataModel(BaseModel):
     active_player_24h: int | None = Field(default=None)
     peak_active_player_all_time: int | None = Field(default=None)
     monthly_active_player: list[dict[str, Any]] = Field(default_factory=list)
-    review_score: float = Field(default=float("nan"))
+    review_score: int | None = Field(default=None)
     review_score_desc: str | None = Field(default=None)
     total_positive: int | None = Field(default=None)
     total_negative: int | None = Field(default=None)
@@ -124,7 +125,6 @@ class GameDataModel(BaseModel):
         "price_initial",
         "price_final",
         "average_playtime_h",
-        "review_score",
         "achievements_percentage_average",
         mode="before",
     )
@@ -137,7 +137,7 @@ class GameDataModel(BaseModel):
         except (ValueError, TypeError):
             return float("nan")
 
-    @field_validator("steam_appid", "name", mode="before")
+    @field_validator("steam_appid", "name", "type", mode="before")
     def ensure_string(cls, v: str | None) -> str:
         """convert x types to string"""
         return "" if v is None else str(v)
@@ -163,38 +163,7 @@ class GameDataModel(BaseModel):
 
     def get_recap(self) -> dict[str, Any]:
         """Create a reduced model with only recap fields"""
-        recap_data = {
-            "steam_appid": self.steam_appid,
-            "name": self.name,
-            "developers": self.developers,
-            "publishers": self.publishers,
-            "release_date": self.release_date,
-            "days_since_release": self.days_since_release,
-            "price_currency": self.price_currency,
-            "price_initial": self.price_initial,
-            "price_final": self.price_final,
-            "copies_sold": self.copies_sold,
-            "estimated_revenue": self.estimated_revenue,
-            # "total_revenue": self.total_revenue,
-            "owners": self.owners,
-            "total_positive": self.total_positive,
-            "total_negative": self.total_negative,
-            "total_reviews": self.total_reviews,
-            "comp_main": self.comp_main,
-            "comp_plus": self.comp_plus,
-            "comp_100": self.comp_100,
-            "comp_all": self.comp_all,
-            "invested_co": self.invested_co,
-            "invested_mp": self.invested_mp,
-            "average_playtime": self.average_playtime,
-            "active_player_24h": self.active_player_24h,
-            "peak_active_player_all_time": self.peak_active_player_all_time,
-            "achievements_count": self.achievements_count,
-            "achievements_percentage_average": self.achievements_percentage_average,
-            "categories": self.categories,
-            "genres": self.genres,
-            "tags": self.tags,
-        }
+        recap_data = {field: getattr(self, field) for field in self._RECAP_FIELDS}
         return recap_data
 
     @model_validator(mode="after")
@@ -213,3 +182,36 @@ class GameDataModel(BaseModel):
     def compute_days_since_release(self) -> None:
         if self.release_date:
             self.days_since_release = (datetime.now() - self.release_date).days
+
+    _RECAP_FIELDS = {
+        "steam_appid",
+        "name",
+        "developers",
+        "publishers",
+        "type",
+        "release_date",
+        "days_since_release",
+        "price_currency",
+        "price_initial",
+        "price_final",
+        "copies_sold",
+        "estimated_revenue",
+        "owners",
+        "total_positive",
+        "total_negative",
+        "total_reviews",
+        "comp_main",
+        "comp_plus",
+        "comp_100",
+        "comp_all",
+        "invested_co",
+        "invested_mp",
+        "average_playtime",
+        "active_player_24h",
+        "peak_active_player_all_time",
+        "achievements_count",
+        "achievements_percentage_average",
+        "categories",
+        "genres",
+        "tags",
+    }

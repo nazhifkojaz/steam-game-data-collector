@@ -11,8 +11,8 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
-from steamgamedata.utils.ratelimit import logged_rate_limited
+from gameinsights.sources.base import BaseSource, SourceResult, SuccessResult
+from gameinsights.utils.ratelimit import logged_rate_limited
 
 _HOWLONGTOBEAT_LABELS = (
     "game_id",
@@ -182,7 +182,7 @@ class HowLongToBeat(BaseSource):
 
         # Make the request
         search_result = self._make_request(game_name)
-        search_result = json.loads(search_result) if search_result else None
+        search_result = json.loads(search_result.text) if search_result else None
 
         # if the search result is None, the request failed
         if not search_result:
@@ -206,7 +206,7 @@ class HowLongToBeat(BaseSource):
         # repack / process the data if needed
         return {label: data.get(label, None) for label in self._valid_labels}
 
-    def _make_request(self, game_name: str, page: int = 1) -> str | None:  # type: ignore[override]
+    def _make_request(self, game_name: str, page: int = 1) -> requests.Response | None:  # type: ignore[override]
         """Send a web request to HowLongToBeat to fetch game data.
         Args:
             game_name (str): The name of the game to search for.
@@ -236,14 +236,14 @@ class HowLongToBeat(BaseSource):
         )
 
         if response.status_code == 200:
-            return response.text
+            return response
 
         # if the request failed, try to use the search URL with API key in the payload
         payload = HowLongToBeat._generate_data_payload(game_name, page, self._search_info_data)
         response = requests.post(search_url, headers=search_headers, data=payload, timeout=60)
 
         if response.status_code == 200:
-            return response.text
+            return response
 
         return None
 

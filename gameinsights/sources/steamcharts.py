@@ -4,8 +4,8 @@ from typing import Any
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
-from steamgamedata.utils.ratelimit import logged_rate_limited
+from gameinsights.sources.base import BaseSource, SourceResult, SuccessResult
+from gameinsights.utils.ratelimit import logged_rate_limited
 
 _STEAMCHARTS_LABELS = (
     "steam_appid",
@@ -43,6 +43,7 @@ class SteamCharts(BaseSource):
         Behavior:
             - If successful, will return a SuccessResult with the data based on the selected_labels or _valid_labels.
             - If unsuccessful, will return an error message indicating the failure reason.
+            - monthly_active_player labels will be returned as empty list if the game have no monthly active user data (for newly released games)
         """
 
         self.logger.log(
@@ -58,7 +59,9 @@ class SteamCharts(BaseSource):
         response = self._make_request(endpoint=steam_appid, headers=self._get_request_header())
 
         if response.status_code != 200:
-            return self._build_error_result("Failed to fetch data.", verbose=verbose)
+            return self._build_error_result(
+                f"Failed to fetch data with status code: {response.status_code}", verbose=verbose
+            )
 
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -78,7 +81,7 @@ class SteamCharts(BaseSource):
         for data in peak_data:
             if not data.find("span", class_="num"):  # type: ignore[union-attr, call-arg]
                 return self._build_error_result(
-                    "Failed to parse data, incorrect data structure.", verbose=verbose
+                    "Failed to parse data, incorrect app-stat structure.", verbose=verbose
                 )
 
         active_player_data_table = soup.find("table", class_="common-table")
@@ -89,6 +92,16 @@ class SteamCharts(BaseSource):
 
         # Skip the "last 30 days" row
         player_data_rows = active_player_data_table.find_all("tr")[2:]  # type: ignore[attr-defined]
+
+        # check the cols whether the table structure is correct (only when the player_data_rows is populated)
+        if len(player_data_rows) > 0:
+            cols = [col.get_text(strip=True) for col in player_data_rows[0].find_all("td")]
+            if len(cols) < 5:
+                return self._build_error_result(
+                    "Failed to parse data, the structure of player data table is incorrect.",
+                    verbose=verbose,
+                )
+
         data_packed = {
             "steam_appid": steam_appid,
             **self._transform_data(
@@ -116,10 +129,6 @@ class SteamCharts(BaseSource):
         monthly_active_player = []
         for row in data.get("player_data_rows", []):
             cols = [col.get_text(strip=True) for col in row.find_all("td")]
-
-            if len(cols) < 5:
-                continue
-
             month, avg_players, gain, percentage_gain, peak_players = cols[:5]
 
             monthly_active_player.append(
