@@ -13,7 +13,7 @@ class SourceConfig(NamedTuple):
     fields: list[str]
 
 
-class DataCollector:
+class Collector:
     def __init__(
         self,
         region: str = "us",

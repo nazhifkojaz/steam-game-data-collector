@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from steamgamedata.collector import DataCollector
+from steamgamedata.collector import Collector
 from steamgamedata.model import GameDataModel
 from steamgamedata.sources import (
     Gamalytic,
@@ -15,7 +15,7 @@ from steamgamedata.sources import (
 )
 
 
-class TestDataCollector:
+class TestCollector:
 
     @pytest.fixture(autouse=True)
     def mock_sources(self, mock_request_response, monkeypatch, request):
@@ -57,7 +57,7 @@ class TestDataCollector:
                 mock_request_response(target_class=target_class, **data)
 
     def test_fetch_raw_data(self):
-        collector = DataCollector()
+        collector = Collector()
         raw_data = collector._fetch_raw_data(steam_appid="12345")
 
         assert isinstance(raw_data, GameDataModel)
@@ -68,7 +68,7 @@ class TestDataCollector:
         ids=["single_appid", "multiple_appids", "empty_appids"],
     )
     def test_get_games_data(self, appids, expected_len):
-        collector = DataCollector()
+        collector = Collector()
         games_data = collector.get_games_data(steam_appids=appids)
 
         assert isinstance(games_data, list)
@@ -84,7 +84,7 @@ class TestDataCollector:
         ids=["single_appid", "multiple_appids", "empty_appids"],
     )
     def test_get_games_active_player_data(self, appids, expected_len):
-        collector = DataCollector()
+        collector = Collector()
         active_player_data = collector.get_games_active_player_data(steam_appids=appids)
 
         assert isinstance(active_player_data, pd.DataFrame)
@@ -100,7 +100,7 @@ class TestDataCollector:
         ids=["review_only_true", "review_only_false"],
     )
     def test_get_game_review(self, review_only, has_reviews_labels):
-        collector = DataCollector()
+        collector = Collector()
         review_data = collector.get_game_review(steam_appid="12345", review_only=review_only)
 
         assert isinstance(review_data, pd.DataFrame)
