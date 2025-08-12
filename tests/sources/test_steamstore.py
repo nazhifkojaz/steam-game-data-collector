@@ -31,6 +31,7 @@ class TestSteamStore:
 
         assert result["success"] is True
         assert result["data"]["steam_appid"] == 12345
+        assert result["data"]["type"] == "mock"
         assert len(result["data"]) == len(steamstore._STEAM_LABELS)
 
         # check if it successfully process the content_rating

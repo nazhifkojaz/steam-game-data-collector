@@ -56,7 +56,8 @@ class TestGameDataModel:
         assert game_data.owners == 1234
 
         # check if the model has all fields (50 fields, with the missing ones set to its default value)
-        assert len(game_data.model_dump()) == 50
+        field_count = sum(1 for field in GameDataModel.model_fields.values() if not field.exclude)
+        assert len(game_data.model_dump()) == field_count
 
     def test_game_data_model_missing_steam_appid(self, raw_data_missing_steam_appid):
         # should raise a ValidationError if steam_appid is missing
@@ -107,5 +108,5 @@ class TestGameDataModel:
         assert recap_data["total_reviews"] is None  # unset in raw data, should be None
 
         # check the length of the recap data
-        assert len(recap_data) == 29
+        assert len(recap_data) == len(game_data._RECAP_FIELDS)
         assert "count_retired" not in recap_data  # this field should not be in recap data
