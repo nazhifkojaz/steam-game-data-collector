@@ -1,6 +1,6 @@
 import pytest
 
-from steamgamedata.sources.steamreview import SteamReview
+from gameinsights.sources.steamreview import SteamReview
 
 
 class TestSteamReview:

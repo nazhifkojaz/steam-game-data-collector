@@ -3,7 +3,7 @@ from typing import Any, cast
 import requests
 from rapidfuzz import fuzz, process
 
-from steamgamedata.utils.logger import LoggerWrapper
+from gameinsights.utils.logger import LoggerWrapper
 
 
 class GameSearch:

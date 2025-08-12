@@ -30,16 +30,16 @@ jobs:
         echo "$(poetry env info -p)/bin" >> $GITHUB_PATH
     
     - name: Run Ruff
-      run: poetry run ruff check steamgamedata/ tests/ --output-format=github
+      run: poetry run ruff check gameinsights/ tests/ --output-format=github
     
-    - name: Formatting with Black (for steamgamedata and tests)
-      run: black --check --diff steamgamedata/ tests/
+    - name: Formatting with Black (for gameinsights and tests)
+      run: black --check --diff gameinsights/ tests/
     
-    - name: Type checking with MyPy (for steamgamedata)
-      run: mypy --show-error-codes steamgamedata/
+    - name: Type checking with MyPy (for gameinsights)
+      run: mypy --show-error-codes gameinsights/
     
     - name: Run tests
-      run: pytest -v --cov=steamgamedata tests/
+      run: pytest -v --cov=gameinsights tests/
     
     - name: Upload coverage
       if: matrix.python-version == '3.12'

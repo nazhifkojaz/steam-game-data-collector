@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 import requests
 
-from steamgamedata.utils import LoggerWrapper
+from gameinsights.utils import LoggerWrapper
 
 
 class SuccessResult(TypedDict):

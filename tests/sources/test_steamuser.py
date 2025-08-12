@@ -1,6 +1,6 @@
 import pytest
 
-from steamgamedata.sources.steamuser import SteamUser
+from gameinsights.sources.steamuser import SteamUser
 
 
 class TestSteamUser:

@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from steamgamedata.sources.base import BaseSource
+from gameinsights.sources.base import BaseSource
 
 
 @pytest.fixture

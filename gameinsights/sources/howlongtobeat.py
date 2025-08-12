@@ -11,8 +11,8 @@ import requests
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
-from steamgamedata.utils.ratelimit import logged_rate_limited
+from gameinsights.sources.base import BaseSource, SourceResult, SuccessResult
+from gameinsights.utils.ratelimit import logged_rate_limited
 
 _HOWLONGTOBEAT_LABELS = (
     "game_id",

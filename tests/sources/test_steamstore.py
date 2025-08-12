@@ -1,7 +1,7 @@
 import pytest
 
-from steamgamedata.sources import steamstore
-from steamgamedata.sources.steamstore import SteamStore
+from gameinsights.sources import steamstore
+from gameinsights.sources.steamstore import SteamStore
 
 
 class TestSteamStore:

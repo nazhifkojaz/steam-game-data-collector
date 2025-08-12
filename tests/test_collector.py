@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
 
-from steamgamedata.collector import Collector
-from steamgamedata.model import GameDataModel
-from steamgamedata.sources import (
+from gameinsights.collector import Collector
+from gameinsights.model import GameDataModel
+from gameinsights.sources import (
     Gamalytic,
     HowLongToBeat,
     SteamAchievements,

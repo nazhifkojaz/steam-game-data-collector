@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from steamgamedata.model.game_data import GameDataModel
+from gameinsights.model.game_data import GameDataModel
 
 
 class TestGameDataModel:

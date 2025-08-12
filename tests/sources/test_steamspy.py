@@ -1,6 +1,6 @@
 import pytest
 
-from steamgamedata.sources.steamspy import SteamSpy
+from gameinsights.sources.steamspy import SteamSpy
 
 
 class TestSteamSpy:

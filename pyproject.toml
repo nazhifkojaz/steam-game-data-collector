@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "steamgamedata"
+name = "gameinsights"
 version = "0.1.0"
 description = "A unified tool for collecting Steam game data from multiple sources"
 authors = ["nazhifkojaz <nazhifkojaz@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "steamgamedata"}]
+packages = [{include = "gameinsights"}]
 homepage = "https://github.com/nazhifkojaz/steam-game-data-collector"
 repository = "https://github.com/nazhifkojaz/steam-game-data-collector"
 keywords = ["steam", "gaming", "data-analysis", "web-scraping"]
@@ -53,7 +53,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 target-version = "py310"
 line-length = 99
-src = ["steamgamedata"]
+src = ["gameinsights"]
 respect-gitignore = true
 
 [tool.ruff.lint]
@@ -63,7 +63,7 @@ unfixable = []
 
 [tool.ruff.lint.isort]
 force-single-line = false
-known-first-party = ["steamgamedata"]
+known-first-party = ["gameinsights"]
 
 [tool.black]
 line-length = 99

@@ -3,9 +3,9 @@ from typing import Any, Literal, NamedTuple
 
 import pandas as pd
 
-from steamgamedata import sources
-from steamgamedata.model.game_data import GameDataModel
-from steamgamedata.utils.ratelimit import logged_rate_limited
+from gameinsights import sources
+from gameinsights.model.game_data import GameDataModel
+from gameinsights.utils.ratelimit import logged_rate_limited
 
 
 class SourceConfig(NamedTuple):

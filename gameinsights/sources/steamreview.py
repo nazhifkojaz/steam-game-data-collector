@@ -1,8 +1,8 @@
 import time
 from typing import Any, Literal, TypedDict, cast
 
-from steamgamedata.sources.base import BaseSource, SourceResult, SuccessResult
-from steamgamedata.utils.ratelimit import logged_rate_limited
+from gameinsights.sources.base import BaseSource, SourceResult, SuccessResult
+from gameinsights.utils.ratelimit import logged_rate_limited
 
 _STEAMREVIEW_SUMMARY_LABELS = (
     "review_score",

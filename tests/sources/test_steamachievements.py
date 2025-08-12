@@ -1,6 +1,6 @@
 import pytest
 
-from steamgamedata.sources.steamachievements import SteamAchievements
+from gameinsights.sources.steamachievements import SteamAchievements
 
 
 class Test_SteamAchievements:

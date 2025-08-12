@@ -19,10 +19,10 @@ A unified tool for collecting Steam game data from multiple sources. Fetch steam
 - **One-stop data collection**: Combine data from multiple sources into a single, unified model.
 - **Direct source access**: Call any source directly via:
   ```python
-  from steamgamedata.sources import SteamStore, SteamCharts, ...
+  from gameinsights.sources import SteamStore, SteamCharts, ...
   ```
 - **Utilities for discovery**:  
-  `steamgamedata.utils.GameSearch` can:
+  `gameinsights.utils.GameSearch` can:
   - Fetch the full Steam app list
   - Perform fuzzy search to find `steam_appid` by game name
 - **Built-in collectors**:
@@ -67,9 +67,9 @@ poetry install --with dev
 
 **Basic game data (default `recap=False` returns full normalized data):**
 ```python
-from steamgamedata.collector import DataCollector
+from gameinsights.collector import Collector
 
-collector = DataCollector()
+collector = Collector()
 full_data = collector.get_games_data(["570", "730"])
 print(full_data[0]["name"], full_data[0].get("owners"))
 ```
@@ -88,13 +88,13 @@ reviews_df = collector.get_game_review("570", review_only=True)
 
 **Steam user/player data (Steam Web API):**
 ```python
-collector = DataCollector(steam_api_key="<YOUR_STEAM_WEB_API_KEY>")
+collector = Collector(steam_api_key="<YOUR_STEAM_WEB_API_KEY>")
 users_df = collector.get_user_data(["76561198084297256"], include_free_games=True)
 ```
 
 **Direct source access:**
 ```python
-from steamgamedata.sources import SteamCharts
+from gameinsights.sources import SteamCharts
 
 src = SteamCharts()
 result = src.fetch("570")
@@ -104,7 +104,7 @@ print(result["success"], result["data"]["active_player_24h"])
 
 **Utilities – list & search games:**
 ```python
-from steamgamedata.utils.gamesearch import GameSearch
+from gameinsights.utils.gamesearch import GameSearch
 
 search = GameSearch()
 all_games = search.get_game_list()
@@ -128,7 +128,7 @@ print(results)  # [{'appid': '570', 'name': 'Dota 2', 'search_score': 99.0}, ...
 ## Rate Limiting
 
 **Global wrapper**:  
-`DataCollector(calls=60, period=60)` → limits multi-source operations.
+`Collector(calls=60, period=60)` → limits multi-source operations.
 
 **Per-source** (approximate):
 - Steam Store: ~60 requests/min
@@ -137,7 +137,7 @@ print(results)  # [{'appid': '570', 'name': 'Dota 2', 'search_score': 99.0}, ...
 - Steam Spy: ~60 requests/min
 - Gamalytic: ~500 requests/day
 - Steam Achievements: ~100,000 requests/day
-- Steam User: ~100,000 requests/day (small internal sleeps via `DataCollector`)
+- Steam User: ~100,000 requests/day (small internal sleeps via `Collector`)
 - Steam Review: ~100,000/day (0.5s sleep per page)
 
 > **Note:** Some sources rely on scraping, which may violate its robots.txt — please use responsibly.
@@ -181,9 +181,9 @@ Key fields include:
 1. **Fork** the repo & create a feature branch from `main`.
 2. **Run style checks** locally:
 ```bash
-poetry run ruff check steamgamedata/ tests/
-poetry run black steamgamedata/ tests/
-poetry run mypy steamgamedata/
+poetry run ruff check gameinsights/ tests/
+poetry run black gameinsights/ tests/
+poetry run mypy gameinsights/
 poetry run pytest -vv
 ```
 3. **Open a Pull Request** with:

@@ -1,7 +1,7 @@
 import pytest
 
-from steamgamedata.sources import howlongtobeat
-from steamgamedata.sources.howlongtobeat import HowLongToBeat
+from gameinsights.sources import howlongtobeat
+from gameinsights.sources.howlongtobeat import HowLongToBeat
 
 
 class TestHowLongToBeat:

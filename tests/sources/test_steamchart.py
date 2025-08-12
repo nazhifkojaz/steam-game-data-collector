@@ -1,6 +1,6 @@
 import pytest
 
-from steamgamedata.sources.steamcharts import SteamCharts
+from gameinsights.sources.steamcharts import SteamCharts
 
 
 class TestSteamCharts:

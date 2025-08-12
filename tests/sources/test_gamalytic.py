@@ -1,6 +1,6 @@
 import pytest
 
-from steamgamedata.sources.gamalytic import Gamalytic
+from gameinsights.sources.gamalytic import Gamalytic
 
 
 class TestGamalytic:
