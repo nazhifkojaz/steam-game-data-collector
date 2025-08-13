@@ -38,6 +38,26 @@ class TestSteamStore:
         assert result["data"]["content_rating"][0]["rating_type"] == "pegi"
         assert result["data"]["content_rating"][0]["rating"] == "12"
 
+    def test_fetch_success_unexpected_data(
+        self,
+        mock_request_response,
+        steamstore_success_partial_unexpected_data,
+    ):
+        result = self._setup_fetch(
+            mock_request_response=mock_request_response,
+            response_data=steamstore_success_partial_unexpected_data,
+        )
+
+        assert result["success"] is True
+        assert result["data"]["steam_appid"] == 12345
+        assert result["data"]["type"] == "mock"
+        assert len(result["data"]) == len(steamstore._STEAM_LABELS)
+
+        # check if it successfully defaulted the unexpected data to None
+        assert result["data"]["price_currency"] is None
+        assert result["data"]["price_initial"] is None
+        assert result["data"]["content_rating"] == []
+
     @pytest.mark.parametrize(
         "selected_labels, expected_labels",
         [
