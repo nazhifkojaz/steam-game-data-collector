@@ -143,43 +143,50 @@ class SteamStore(BaseSource):
 
     def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
         # repack / process the data if needed
-        price_overview = data.get("price_overview", {})
-        release_date = data.get("release_date", {})
-        platforms = data.get("platforms", {})
-        genres = data.get("genres", [])
-        categories = data.get("categories", [])
-        ratings = data.get("ratings", {})
+        price_overview = data.get("price_overview") or {}
+        release_date = data.get("release_date") or {}
+        platforms = data.get("platforms") or {}
+        genres = data.get("genres") or []
+        categories = data.get("categories") or []
+        ratings = data.get("ratings") or {}
 
         return {  # Default to None
-            "steam_appid": data.get("steam_appid", None),
-            "name": data.get("name", None),
-            "type": data.get("type", None),
-            "is_coming_soon": release_date.get("coming_soon", None),
-            "release_date": release_date.get("date", None),
-            "is_free": data.get("is_free", None),
-            "price_currency": price_overview.get("currency", None),
+            "steam_appid": data.get("steam_appid"),
+            "name": data.get("name"),
+            "type": data.get("type"),
+            "is_coming_soon": release_date.get("coming_soon"),
+            "release_date": release_date.get("date"),
+            "is_free": data.get("is_free"),
+            "price_currency": price_overview.get("currency"),
             "price_initial": (
-                price_overview.get("initial") / 100
-                if price_overview.get("initial", None) is not None
+                price_overview.get("initial") / 100  # type: ignore[operator]
+                if isinstance(price_overview, dict) and price_overview.get("initial") is not None
                 else None
             ),
             "price_final": (
-                price_overview.get("final") / 100
-                if price_overview.get("final", None) is not None
+                price_overview.get("final") / 100  # type: ignore[operator]
+                if isinstance(price_overview, dict) and price_overview.get("final") is not None
                 else None
             ),
-            "developers": data.get("developers", None),
-            "publishers": data.get("publishers", None),
+            "developers": data.get("developers"),
+            "publishers": data.get("publishers"),
             "platforms": [
-                platform for platform, is_supported in platforms.items() if is_supported
+                platform
+                for platform, is_supported in platforms.items()
+                if isinstance(platforms, dict) and is_supported
             ],
             "categories": [category["description"] for category in categories],
             "genres": [genre["description"] for genre in genres],
-            "metacritic_score": data.get("metacritic", {}).get("score", None),
-            "recommendations": data.get("recommendations", {}).get("total", None),
-            "achievements": data.get("achievements", {}).get("total", None),
-            "content_rating": [
-                {"rating_type": rating_type, "rating": rating["rating"]}
-                for rating_type, rating in ratings.items()
-            ],
+            "metacritic_score": data.get("metacritic", {}).get("score"),
+            "recommendations": data.get("recommendations", {}).get("total"),
+            "achievements": data.get("achievements", {}).get("total"),
+            "content_rating": (
+                [
+                    {"rating_type": rating_type, "rating": rating["rating"]}
+                    for rating_type, rating in ratings.items()
+                    if isinstance(ratings, dict) and isinstance(rating, dict)
+                ]
+                if ratings
+                else []
+            ),
         }

@@ -417,6 +417,22 @@ def steamstore_success_response_data():
 
 
 @pytest.fixture
+def steamstore_success_partial_unexpected_data():
+    return {
+        "12345": {
+            "success": True,
+            "data": {
+                "type": "mock",
+                "name": "Mock Game: The Adventure",
+                "steam_appid": 12345,
+                "price_overview": [],  # unexpected data type
+                "ratings": None,  # this as well
+            },
+        }
+    }
+
+
+@pytest.fixture
 def steamstore_not_found_response_data():
     return {"12345": {"success": False}}
 
