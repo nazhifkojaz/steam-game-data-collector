@@ -175,14 +175,14 @@ class SteamStore(BaseSource):
                 for platform, is_supported in platforms.items()
                 if isinstance(platforms, dict) and is_supported
             ],
-            "categories": [category["description"] for category in categories],
-            "genres": [genre["description"] for genre in genres],
+            "categories": [category.get("description") for category in categories],
+            "genres": [genre.get("description") for genre in genres],
             "metacritic_score": data.get("metacritic", {}).get("score"),
             "recommendations": data.get("recommendations", {}).get("total"),
             "achievements": data.get("achievements", {}).get("total"),
             "content_rating": (
                 [
-                    {"rating_type": rating_type, "rating": rating["rating"]}
+                    {"rating_type": rating_type, "rating": rating.get("rating")}
                     for rating_type, rating in ratings.items()
                     if isinstance(ratings, dict) and isinstance(rating, dict)
                 ]

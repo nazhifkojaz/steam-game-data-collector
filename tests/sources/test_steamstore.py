@@ -57,6 +57,7 @@ class TestSteamStore:
         assert result["data"]["price_currency"] is None
         assert result["data"]["price_initial"] is None
         assert result["data"]["content_rating"] == []
+        assert result["data"]["categories"] == [None]
 
     @pytest.mark.parametrize(
         "selected_labels, expected_labels",
