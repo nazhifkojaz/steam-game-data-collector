@@ -41,12 +41,12 @@ class TestSteamSpy:
     ):
         result = self._setup_fetch(
             mock_request_response=mock_request_response,
-            response_data=steamspy_success_unexpected_data
+            response_data=steamspy_success_unexpected_data,
         )
 
         assert result["success"] is True
-        assert result["data"]["positive_reviews"] == [1234] # will take whatever thrown by the api
-        assert result["data"]["tags"] == [] # defaulted to empty list
+        assert result["data"]["positive_reviews"] == [1234]  # will take whatever thrown by the api
+        assert result["data"]["tags"] == []  # defaulted to empty list
 
     @pytest.mark.parametrize(
         "selected_labels, expected_labels",

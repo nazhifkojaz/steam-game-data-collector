@@ -97,9 +97,7 @@ class Test_SteamAchievements:
         assert result["data"] == expected_result
 
     def test_fetch_unexpected_data(
-        self,
-        mock_request_response,
-        achievements_success_with_unexpected_data
+        self, mock_request_response, achievements_success_with_unexpected_data
     ):
         mock_request_response(
             target_class=SteamAchievements,
