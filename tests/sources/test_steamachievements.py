@@ -96,6 +96,25 @@ class Test_SteamAchievements:
         assert len(result["data"]) == len(expected_result)
         assert result["data"] == expected_result
 
+    def test_fetch_unexpected_data(
+        self,
+        mock_request_response,
+        achievements_success_with_unexpected_data
+    ):
+        mock_request_response(
+            target_class=SteamAchievements,
+            json_data=achievements_success_with_unexpected_data,
+        )
+        source = SteamAchievements()
+        result = source.fetch(
+            steam_appid="12345",
+        )
+
+        assert result["success"] is True
+        assert result["data"]["achievements_count"] == 1
+        assert result["data"]["achievements_percentage_average"] == 12.3
+        assert result["data"]["achievements_list"] == [{"name": "Mock_3", "percent": 12.3}]
+
     @pytest.mark.parametrize(
         "api_key, achievements_status_code, schema_status_code , expected_result",
         [
