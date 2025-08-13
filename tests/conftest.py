@@ -128,6 +128,18 @@ def achievements_success_response_data():
         }
     }
 
+@pytest.fixture
+def achievements_success_with_unexpected_data():
+    return {
+        "achievementpercentages": {
+            "achievements": [
+                {"nama": "Mock_1", "percent": "12.3"}, # incorrect 'name' label
+                {"name": "Mock_2", "percen": "12.3"}, # incorrect 'percent' label
+                {"name": "Mock_3", "percent": "12.3"} # correct label
+            ]
+        }
+    }
+
 
 @pytest.fixture
 def scheme_success_response_data():
@@ -388,6 +400,16 @@ def steamspy_success_response_data():
         "negative": 12,
     }
 
+@pytest.fixture
+def steamspy_success_unexpected_data():
+    return {
+        "appid": 12345,
+        "name": "Mock Game: The Adventure",
+        "positive": [1234],
+        "negative": 12,
+        "tags": None, # unexpected None value
+    }
+
 
 @pytest.fixture
 def steamspy_not_found_response_data():
@@ -425,6 +447,7 @@ def steamstore_success_partial_unexpected_data():
                 "type": "mock",
                 "name": "Mock Game: The Adventure",
                 "steam_appid": 12345,
+                "categories": [{"id": 1, "unexpected_label": "unexpected_value"}],
                 "price_overview": [],  # unexpected data type
                 "ratings": None,  # this as well
             },
