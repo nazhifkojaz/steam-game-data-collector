@@ -320,8 +320,8 @@ class Collector:
         self, steam_appid: str, verbose: bool = True, review_only: bool = True
     ) -> pd.DataFrame:
 
-        if not steam_appid or not isinstance(steam_appid, str):
-            raise ValueError("steam_appid must be a non-empty string.")
+        if not steam_appid:
+            raise ValueError("steam_appid must be a non-empty.")
 
         reviews_data = self.steamreview.fetch(
             steam_appid=steam_appid,
