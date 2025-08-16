@@ -1,7 +1,26 @@
 import pytest
+import requests
+
+from gameinsights.sources import base
+from gameinsights.sources.base import BaseSource
 
 
 class TestBaseSource:
+    @pytest.fixture
+    def base_source_fixture(self):
+        class _TestSource(BaseSource):
+            _valid_labels = ("test_label_1", "test_label_2")
+            _valid_labels_set = frozenset(_valid_labels)
+            _base_url = "https://api.testurl.com/"
+
+            def fetch(self, *args, **kwargs):
+                pass
+
+            def _transform_data(self, data):
+                pass
+
+        return _TestSource()
+
     @pytest.mark.parametrize(
         "selected_labels, valid_labels, expected",
         [
@@ -31,3 +50,47 @@ class TestBaseSource:
 
         assert isinstance(result, list)
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "attempt, expected_result",
+        [
+            (
+                [requests.exceptions.ConnectionError("fail 1"), {"json_data": {"ok": True}}],
+                {"retries": 2, "status_code": 200},
+            ),
+            (
+                [
+                    requests.exceptions.Timeout("timeout 1"),
+                    requests.exceptions.Timeout("timeout 2"),
+                    {"json_data": {"ok": True}},
+                ],
+                {"retries": 3, "status_code": 200},
+            ),
+        ],
+        ids=["connection_error_once", "timeout_twice"],
+    )
+    def test_make_request_retries_on_exception_to_retry(
+        self, mock_request_response, base_source_fixture, attempt, expected_result
+    ):
+        mock_get = mock_request_response(
+            target_class=requests, method_name="get", side_effect=attempt
+        )
+        result = base_source_fixture._make_request()
+
+        assert result.status_code == expected_result["status_code"]
+        assert mock_get.call_count == expected_result["retries"]
+
+    def test_make_request_max_retries(self, mock_request_response, base_source_fixture):
+        attempt = [
+            requests.exceptions.Timeout("timeout 1"),
+            requests.exceptions.Timeout("timeout 2"),
+            requests.exceptions.Timeout("timeout 3"),
+        ]
+        mock_get = mock_request_response(
+            target_class=requests, method_name="get", side_effect=attempt
+        )
+        result = base_source_fixture._make_request()
+
+        assert mock_get.call_count == 3
+        assert result.status_code == base.SYNTHETIC_ERROR_CODE
+        assert not result.ok

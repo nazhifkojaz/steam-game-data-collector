@@ -3,8 +3,6 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from gameinsights.sources.base import BaseSource
-
 
 @pytest.fixture
 def mock_request_response(monkeypatch):
@@ -24,6 +22,7 @@ def mock_request_response(monkeypatch):
                 self.ok = 200 <= status_code < 300
                 self._json = json_data
                 self._text = text_data or ""
+                self.reason = "Mock Reason"
 
             def json(self):
                 return self._json
@@ -36,35 +35,22 @@ def mock_request_response(monkeypatch):
                 if not self.ok:
                     raise requests.HTTPError(f"Mock error {self.status_code}")
 
+        def make_response_from_dict(d):
+            return Response(d.get("status_code", 200), d.get("json_data"), d.get("text_data"))
+
         if side_effect:
+            # now it takes either exception or dict
             responses = [
-                Response(r.get("status_code", 200), r.get("json_data"), r.get("text_data"))
-                for r in side_effect
+                e if isinstance(e, Exception) else make_response_from_dict(e) for e in side_effect
             ]
             mock_method = Mock(side_effect=responses)
         else:
             mock_method = Mock(return_value=Response(status_code, json_data, text_data))
 
         monkeypatch.setattr(target_class, method_name, mock_method)
+        return mock_method
 
     return _patch_method
-
-
-@pytest.fixture
-def base_source_fixture():
-
-    class _TestSource(BaseSource):
-        _valid_labels = ("test_label_1", "test_label_2")
-        _valid_labels_set = frozenset(_valid_labels)
-        _base_url = "https://api.testurl.com/"
-
-        def fetch(self, *args, **kwargs):
-            pass
-
-        def _transform_data(self, data):
-            pass
-
-    return _TestSource()
 
 
 @pytest.fixture

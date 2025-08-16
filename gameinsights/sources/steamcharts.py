@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Any
 
 from bs4 import BeautifulSoup
-from fake_useragent import UserAgent
 
 from gameinsights.sources.base import BaseSource, SourceResult, SuccessResult
 from gameinsights.utils.ratelimit import logged_rate_limited
@@ -56,7 +55,7 @@ class SteamCharts(BaseSource):
         steam_appid = str(steam_appid)
 
         # Prepare the headers and make the request to steamchart
-        response = self._make_request(endpoint=steam_appid, headers=self._get_request_header())
+        response = self._make_request(endpoint=steam_appid)
 
         if response.status_code != 200:
             return self._build_error_result(
@@ -151,9 +150,3 @@ class SteamCharts(BaseSource):
             "peak_active_player_all_time": int(peak_active) if peak_active else None,
             "monthly_active_player": monthly_active_player,
         }
-
-    def _get_request_header(self) -> dict[str, Any]:
-        """Get headers for the request."""
-        ua = UserAgent()
-        headers = {"User-Agent": ua.random}
-        return headers

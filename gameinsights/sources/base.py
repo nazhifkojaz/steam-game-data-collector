@@ -1,8 +1,18 @@
+import time
 from abc import ABC, abstractmethod
 from typing import Any, Literal, TypedDict
 from urllib.parse import urljoin
 
 import requests
+from fake_useragent import UserAgent
+from requests.exceptions import (
+    ConnectionError,
+    InvalidURL,
+    RequestException,
+    SSLError,
+    Timeout,
+    TooManyRedirects,
+)
 
 from gameinsights.utils import LoggerWrapper
 
@@ -18,6 +28,9 @@ class ErrorResult(TypedDict):
 
 
 SourceResult = SuccessResult | ErrorResult
+
+# a custom error code for the synthetic response
+SYNTHETIC_ERROR_CODE = 599
 
 
 class BaseSource(ABC):
@@ -70,6 +83,9 @@ class BaseSource(ABC):
         endpoint: str | None = None,
         headers: dict[str, Any] | None = None,
         params: dict[str, Any] | None = None,
+        retries: int = 3,
+        backoff_factor: float = 0.5,
+        timeout: float | tuple[float, float] = (30, 60),
     ) -> requests.Response:
         """Default implementation for request.
         Args:
@@ -77,6 +93,8 @@ class BaseSource(ABC):
             endpoint (str): Optional path to append to base URL (e.g., steam_appid)
             headers (dict | None): Optional headers dictionary
             params (dict | None): Optional query parameters dictionary
+            retries (int): Max number of retries
+            backoff_factor (float): Multiplier for sleep/cooldown between retries
         Return:
             requests.Response: The response of the request call.
         """
@@ -84,7 +102,63 @@ class BaseSource(ABC):
         final_url = source_url.rstrip("/")  # type: ignore[union-attr]
         if endpoint:
             final_url = urljoin(final_url + "/", endpoint.rstrip("/"))
-        return requests.get(final_url, headers=headers, params=params)
+
+        # add user-agent in params
+        ua = UserAgent()
+        params_ua = {"User-Agent": ua.random}
+        if params is None:
+            params = params_ua
+        else:
+            params.update(params_ua)
+
+        exception_to_retry = (ConnectionError, Timeout)
+        exception_to_abort = (
+            InvalidURL,
+            SSLError,
+            TooManyRedirects,
+        )
+
+        for attempts in range(1, retries + 2):
+            try:
+                return requests.get(final_url, headers=headers, params=params, timeout=timeout)
+            except exception_to_retry as e:
+                if attempts < retries:
+                    sleep_duration = backoff_factor * (2 ** (attempts - 1))  # the cooldown period
+                    self.logger.log(
+                        f"Encounter error {e}. Retrying in {sleep_duration: .1f}s. (Attempt {attempts+1} of {retries})",
+                        level="warning",
+                        verbose=True,
+                    )
+                    time.sleep(sleep_duration)
+                    continue
+                else:
+                    return self._create_synthetic_response(url=final_url, reason=str(e))
+            except exception_to_abort as e:
+                self.logger.log(
+                    f"Encounter fatal error {e}. Abort process..",
+                    level="error",
+                    verbose=True,
+                )
+                return self._create_synthetic_response(url=final_url, reason=str(e))
+            except RequestException as e:
+                self.logger.log(
+                    f"Encounter unknown error {e}. Abort process..",
+                    level="error",
+                    verbose=True,
+                )
+                return self._create_synthetic_response(url=final_url, reason=str(e))
+
+        return self._create_synthetic_response(url=final_url, reason="unexpected request error")
+
+    def _create_synthetic_response(self, url: str, reason: str) -> requests.Response:
+        """create a synthetic response to return"""
+        response = requests.Response()
+        response.status_code = SYNTHETIC_ERROR_CODE
+        response._content = b""
+        response.url = url
+        response.reason = reason
+        response.headers = {}  # type: ignore[assignment]
+        return response
 
     @abstractmethod
     def _transform_data(self, data: dict[str, Any]) -> dict[str, Any]:
