@@ -5,6 +5,7 @@ import pandas as pd
 
 from gameinsights import sources
 from gameinsights.model.game_data import GameDataModel
+from gameinsights.utils import LoggerWrapper
 from gameinsights.utils.ratelimit import logged_rate_limited
 
 
@@ -41,6 +42,12 @@ class Collector:
 
         self._init_sources()
         self._init_sources_config()
+
+        self._logger = LoggerWrapper(self.__class__.__name__)
+
+    @property
+    def logger(self) -> "LoggerWrapper":
+        return self._logger
 
     def _init_sources(self) -> None:
         """Initialize the sources with the current settings."""
@@ -202,19 +209,31 @@ class Collector:
         )
 
         results = []
+        total = len(steamid_list)
 
-        for steamid in steamid_list:
-            fetch_result = self.steamuser.fetch(
-                steamid=steamid, include_free_games=include_free_games, verbose=verbose
+        for idx, steamid in enumerate(steamid_list, start=1):
+            self.logger.log(
+                f"Fetching {idx} of {total}: user with steamid {steamid}",
+                level="info",
+                verbose=verbose,
             )
-            if fetch_result["success"]:
-                user_data = fetch_result["data"]
-                results.append(user_data)
-            else:
-                user_data = {"steamid": steamid}
-                results.append(user_data)
 
-            time.sleep(0.25)  # internal sleep to prevent over-calling
+            try:
+                fetch_result = self.steamuser.fetch(
+                    steamid=steamid, include_free_games=include_free_games, verbose=verbose
+                )
+                if fetch_result["success"]:
+                    user_data = fetch_result["data"]
+                    results.append(user_data)
+                else:
+                    user_data = {"steamid": steamid}
+                    results.append(user_data)
+
+                time.sleep(0.25)  # internal sleep to prevent over-calling
+            except Exception:
+                self.logger.log(
+                    f"Error fetching data for steamid {steamid}: e", level="error", verbose=True
+                )
 
         if return_as == "dataframe":
             return pd.DataFrame(results)
@@ -235,8 +254,8 @@ class Collector:
             list[dict[str, Any]]: List of games recap data.
 
         Behavior:
-            - Returns None if ALL sources fail
-            - Returns complete/partial data if ALL/ANY sources succeeds
+            - Returns an empty list if no data could be fetched.
+            - Returns complete/partial data if all/any appids succeed.
         """
 
         if not steam_appids:
@@ -246,11 +265,23 @@ class Collector:
             steam_appids = [steam_appids]
 
         result = []
-        for steam_appid in steam_appids:
-            game_data = self._fetch_raw_data(steam_appid, verbose=verbose)
-            game_data = game_data.get_recap() if recap else game_data.model_dump()
-
-            result.append(game_data)
+        total = len(steam_appids)
+        for idx, appid in enumerate(steam_appids, start=1):
+            self.logger.log(
+                f"Fetching {idx} of {total} game data: steam appid {appid}..",
+                level="info",
+                verbose=verbose,
+            )
+            try:
+                game_data = self._fetch_raw_data(appid, verbose=verbose)
+                payload = game_data.get_recap() if recap else game_data.model_dump()
+                result.append(payload)
+            except Exception as e:
+                self.logger.log(
+                    f"Error fecthing data for game {appid} with {e} error..",
+                    level="error",
+                    verbose=True,
+                )
 
         return result
 
@@ -274,32 +305,50 @@ class Collector:
 
         all_months: set[str] = set()
         all_data = []
+        total = len(steam_appids)
 
-        for appid in steam_appids:
-            active_player_data = self.steamcharts.fetch(
-                appid,
+        for idx, appid in enumerate(steam_appids, start=1):
+            self.logger.log(
+                f"Fetching {idx} of {total}: active player data for appid {appid}..",
+                level="info",
                 verbose=verbose,
-                selected_labels=["name", "peak_active_player_all_time", "monthly_active_player"],
             )
             game_record = {
                 "steam_appid": appid,
             }
 
-            if active_player_data.get("success"):
-                monthly_data = {
-                    month["month"]: month["average_players"]
-                    for month in active_player_data["data"].get("monthly_active_player", [])
-                }
-                game_record.update(monthly_data)
-                game_record.update(
-                    {
-                        "name": active_player_data["data"].get("name"),
-                        "peak_active_player_all_time": (
-                            active_player_data["data"].get("peak_active_player_all_time")
-                        ),
-                    }
+            try:
+                active_player_data = self.steamcharts.fetch(
+                    appid,
+                    verbose=verbose,
+                    selected_labels=[
+                        "name",
+                        "peak_active_player_all_time",
+                        "monthly_active_player",
+                    ],
                 )
-                all_months.update(monthly_data.keys())
+
+                if active_player_data.get("success"):
+                    monthly_data = {
+                        month["month"]: month["average_players"]
+                        for month in active_player_data["data"].get("monthly_active_player", [])
+                    }
+                    game_record.update(monthly_data)
+                    game_record.update(
+                        {
+                            "name": active_player_data["data"].get("name"),
+                            "peak_active_player_all_time": (
+                                active_player_data["data"].get("peak_active_player_all_time")
+                            ),
+                        }
+                    )
+                    all_months.update(monthly_data.keys())
+            except Exception as e:
+                self.logger.log(
+                    f"Error fetching active player data for appid {appid}: {e}",
+                    level="error",
+                    verbose=True,
+                )
             all_data.append(game_record)
 
         # sort the months chronologically
@@ -323,22 +372,32 @@ class Collector:
         if not steam_appid:
             raise ValueError("steam_appid must be a non-empty.")
 
-        reviews_data = self.steamreview.fetch(
-            steam_appid=steam_appid,
+        self.logger.log(
+            f"Fetching reviews for appid {steam_appid}..",
+            level="info",
             verbose=verbose,
-            filter="recent",
-            language="all",
-            review_type="all",
-            purchase_type="all",
-            mode="review",
         )
 
-        if reviews_data["success"]:
-            if review_only:
-                return pd.DataFrame(reviews_data["data"]["reviews"])
-            else:
-                return pd.DataFrame([reviews_data["data"]])
+        try:
+            reviews_data = self.steamreview.fetch(
+                steam_appid=steam_appid,
+                verbose=verbose,
+                filter="recent",
+                language="all",
+                review_type="all",
+                purchase_type="all",
+                mode="review",
+            )
 
+            if reviews_data["success"]:
+                if review_only:
+                    return pd.DataFrame(reviews_data["data"]["reviews"])
+                else:
+                    return pd.DataFrame([reviews_data["data"]])
+        except Exception as e:
+            self.logger.log(
+                f"Error fetching reviews for appid {steam_appid}: {e}", level="error", verbose=True
+            )
         return pd.DataFrame([])
 
     @logged_rate_limited()
