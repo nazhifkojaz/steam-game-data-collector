@@ -1,9 +1,31 @@
+import math
 from datetime import datetime
+from typing import Any, Callable
 
 import pytest
 from pydantic import ValidationError
 
 from gameinsights.model.game_data import GameDataModel
+
+Expectation = Callable[[Any], None] | Any
+
+
+def assert_game_data_values(model: GameDataModel, expectations: dict[str, Expectation]) -> None:
+    for field, expected in expectations.items():
+        value = getattr(model, field)
+        if callable(expected):
+            outcome = expected(value)
+            if outcome is not None:
+                assert outcome, f"Expectation for {field} did not hold"
+        else:
+            assert value == expected, f"Expected {field} to be {expected}, got {value}"
+
+
+def assert_model_field_count(model: GameDataModel) -> None:
+    included_fields = {
+        name for name, field in GameDataModel.model_fields.items() if not field.exclude
+    }
+    assert set(model.model_dump().keys()) == included_fields
 
 
 class TestGameDataModel:
@@ -13,18 +35,17 @@ class TestGameDataModel:
         # check if the model is created correctly
         assert isinstance(game_data, GameDataModel)
 
-        # check if steam_appid is set correctly
-        assert game_data.steam_appid == "12345"
-
-        # check if release_date is converted to datetime
-        assert isinstance(game_data.release_date, datetime)
-        assert game_data.release_date == datetime(2025, 1, 1)
-
-        # check if the model has all fields (50 fields, with the missing ones set to its default value)
-        included_fields = {
-            name for name, fields in GameDataModel.model_fields.items() if not fields.exclude
-        }
-        assert set(game_data.model_dump().keys()) == set(included_fields)
+        assert_game_data_values(
+            game_data,
+            {
+                "steam_appid": "12345",
+                "release_date": lambda value: (
+                    isinstance(value, datetime)
+                    and value == datetime(2025, 1, 1)
+                ),
+            },
+        )
+        assert_model_field_count(game_data)
 
     def test_game_data_model_invalid_types(self, raw_data_invalid_types):
         game_data = GameDataModel(**raw_data_invalid_types)
@@ -32,32 +53,19 @@ class TestGameDataModel:
         # check if the model is created correctly
         assert isinstance(game_data, GameDataModel)
 
-        # check if relase_date is a datetime object
-        assert game_data.release_date is None
-
-        # check if average_playtime_h is NaN and average_playtime is None
-        assert game_data.average_playtime_h != game_data.average_playtime_h  # nan check
-        assert game_data.average_playtime is None
-
-        # check if steam_appid is set correctly
-        assert isinstance(game_data.steam_appid, str)
-        assert game_data.steam_appid == "23456"
-
-        # check if "developers" is a list
-        assert isinstance(game_data.developers, list)
-        assert game_data.developers == ["devmock 3"]
-
-        # check if "price_final" is a float
-        assert isinstance(game_data.price_final, float)
-        assert game_data.price_final == 12.34
-
-        # check if "owners" is an integer
-        assert isinstance(game_data.owners, int)
-        assert game_data.owners == 1234
-
-        # check if the model has all fields (50 fields, with the missing ones set to its default value)
-        field_count = sum(1 for field in GameDataModel.model_fields.values() if not field.exclude)
-        assert len(game_data.model_dump()) == field_count
+        assert_game_data_values(
+            game_data,
+            {
+                "release_date": lambda value: value is None,
+                "average_playtime_h": lambda value: math.isnan(value),
+                "average_playtime": lambda value: value is None,
+                "steam_appid": "23456",
+                "developers": ["devmock 3"],
+                "price_final": 12.34,
+                "owners": 1234,
+            },
+        )
+        assert_model_field_count(game_data)
 
     def test_game_data_model_missing_steam_appid(self, raw_data_missing_steam_appid):
         # should raise a ValidationError if steam_appid is missing
@@ -97,15 +105,21 @@ class TestGameDataModel:
         # check if the recap data is correct
         recap_data = game_data.get_recap()
         assert isinstance(recap_data, dict)
-        assert recap_data["steam_appid"] == "12345"
-        assert recap_data["name"] == "Mock Game: The Adventure"
-        assert recap_data["developers"] == ["devmock_1", "devmock_2"]
-        assert recap_data["release_date"] == datetime(2025, 1, 1)
-        assert recap_data["price_final"] == 12.34
-        assert recap_data["owners"] == 1234
-        assert recap_data["tags"] == ["RPG", "MOBA"]
-        assert recap_data["average_playtime"] == 1234 * 3600  # check if conversion is a success
-        assert recap_data["total_reviews"] is None  # unset in raw data, should be None
+
+        expectations = {
+            "steam_appid": "12345",
+            "name": "Mock Game: The Adventure",
+            "developers": ["devmock_1", "devmock_2"],
+            "release_date": datetime(2025, 1, 1),
+            "price_final": 12.34,
+            "owners": 1234,
+            "tags": ["RPG", "MOBA"],
+            "average_playtime": 1234 * 3600,
+            "total_reviews": None,
+        }
+
+        for field, expected in expectations.items():
+            assert recap_data[field] == expected, f"{field} expectation failed"
 
         # check the length of the recap data
         assert len(recap_data) == len(game_data._RECAP_FIELDS)

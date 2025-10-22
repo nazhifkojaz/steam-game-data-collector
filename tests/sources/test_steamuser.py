@@ -19,16 +19,16 @@ class TestSteamUser:
         ],
     )
     def test_fetch_summary_success(
-        self, mock_request_response, request, steamresponse_data, expected_result
+        self, source_fetcher, request, steamresponse_data, expected_result
     ):
         response_data = request.getfixturevalue(steamresponse_data)
-        mock_request_response(
-            target_class=SteamUser,
-            json_data=response_data,
+        result = source_fetcher(
+            SteamUser,
+            method="_fetch_summary",
+            instantiate_kwargs={"api_key": "mockapikey"},
+            mock_kwargs={"json_data": response_data},
+            call_kwargs={"steamid": "12345", "verbose": False},
         )
-
-        source = SteamUser(api_key="mockapikey")
-        result = source._fetch_summary(steamid="12345", verbose=False)
 
         assert result["success"] is True
         assert result["data"]["steamid"] == expected_result["steamid"]
@@ -40,14 +40,15 @@ class TestSteamUser:
         assert len(result["data"]) == 11
 
     def test_fetch_summary_steamid_not_found(
-        self, mock_request_response, usersummary_not_found_response_data
+        self, source_fetcher, usersummary_not_found_response_data
     ):
-        mock_request_response(
-            target_class=SteamUser, json_data=usersummary_not_found_response_data
+        result = source_fetcher(
+            SteamUser,
+            method="_fetch_summary",
+            instantiate_kwargs={"api_key": "mockapikey"},
+            mock_kwargs={"json_data": usersummary_not_found_response_data},
+            call_kwargs={"steamid": "54321", "verbose": False},
         )
-
-        source = SteamUser(api_key="mockapikey")
-        result = source._fetch_summary(steamid="54321", verbose=False)
 
         assert result["success"] is False
         assert "error" in result
@@ -61,14 +62,14 @@ class TestSteamUser:
         ],
         ids=["Wrong_API_Key", "Timed_Out"],
     )
-    def test_fetch_summary_error(self, mock_request_response, status_code, expected_error):
-        mock_request_response(
-            target_class=SteamUser,
+    def test_fetch_summary_error(self, source_fetcher, status_code, expected_error):
+        result = source_fetcher(
+            SteamUser,
+            method="_fetch_summary",
+            instantiate_kwargs={"api_key": "invalidapikey"},
             status_code=status_code,
+            call_kwargs={"steamid": "12345", "verbose": False},
         )
-
-        source = SteamUser(api_key="invalidapikey")
-        result = source._fetch_summary(steamid="12345", verbose=False)
 
         assert result["success"] is False
         assert "error" in result
@@ -100,16 +101,19 @@ class TestSteamUser:
         ],
     )
     def test_fetch_owned_games_success(
-        self, mock_request_response, request, steamresponse_data, include_free, expected_result
+        self, source_fetcher, request, steamresponse_data, include_free, expected_result
     ):
         response_data = request.getfixturevalue(steamresponse_data)
-        mock_request_response(
-            target_class=SteamUser,
-            json_data=response_data,
-        )
-        source = SteamUser(api_key="mockapikey")
-        result = source._fetch_owned_games(
-            steamid="12345", verbose=False, include_free_games=include_free
+        result = source_fetcher(
+            SteamUser,
+            method="_fetch_owned_games",
+            instantiate_kwargs={"api_key": "mockapikey"},
+            mock_kwargs={"json_data": response_data},
+            call_kwargs={
+                "steamid": "12345",
+                "verbose": False,
+                "include_free_games": include_free,
+            },
         )
 
         assert result["success"] is expected_result["success"]
@@ -129,17 +133,22 @@ class TestSteamUser:
     )
     def test_fetch_owned_games_error(
         self,
-        mock_request_response,
+        source_fetcher,
         status_code,
         api_key,
         expected_error,
     ):
-        mock_request_response(
-            target_class=SteamUser,
+        result = source_fetcher(
+            SteamUser,
+            method="_fetch_owned_games",
+            instantiate_kwargs={"api_key": api_key},
             status_code=status_code,
+            call_kwargs={
+                "steamid": "12345",
+                "verbose": False,
+                "include_free_games": True,
+            },
         )
-        source = SteamUser(api_key=api_key)
-        result = source._fetch_owned_games(steamid="12345", verbose=False, include_free_games=True)
 
         assert result["success"] is False
         assert "error" in result
@@ -159,15 +168,16 @@ class TestSteamUser:
         ],
     )
     def test_fetch_recently_played_games_success(
-        self, mock_request_response, request, steamresponse_data, expected_result
+        self, source_fetcher, request, steamresponse_data, expected_result
     ):
         response_data = request.getfixturevalue(steamresponse_data)
-        mock_request_response(
-            target_class=SteamUser,
-            json_data=response_data,
+        result = source_fetcher(
+            SteamUser,
+            method="_fetch_recently_played_games",
+            instantiate_kwargs={"api_key": "mockapikey"},
+            mock_kwargs={"json_data": response_data},
+            call_kwargs={"steamid": "12345", "verbose": False},
         )
-        source = SteamUser(api_key="mockapikey")
-        result = source._fetch_recently_played_games(steamid="12345", verbose=False)
 
         assert result["success"] is expected_result["success"]
         assert result["data"]["games_count"] == expected_result["games_count"]
@@ -182,17 +192,18 @@ class TestSteamUser:
     )
     def test_fetch_recently_played_games_error(
         self,
-        mock_request_response,
+        source_fetcher,
         status_code,
         api_key,
         expected_error,
     ):
-        mock_request_response(
-            target_class=SteamUser,
+        result = source_fetcher(
+            SteamUser,
+            method="_fetch_recently_played_games",
+            instantiate_kwargs={"api_key": api_key},
             status_code=status_code,
+            call_kwargs={"steamid": "12345", "verbose": False},
         )
-        source = SteamUser(api_key=api_key)
-        result = source._fetch_recently_played_games(steamid="12345", verbose=False)
 
         assert result["success"] is False
         assert "error" in result

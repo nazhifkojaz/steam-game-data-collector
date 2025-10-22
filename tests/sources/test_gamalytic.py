@@ -4,27 +4,11 @@ from gameinsights.sources.gamalytic import Gamalytic
 
 
 class TestGamalytic:
-
-    def _setup_fetch(
-        self,
-        mock_request_response,
-        status_code=200,
-        gamalytic_success_response_data=None,
-        steam_appid="12345",
-        selected_labels=None,
-    ):
-        mock_request_response(
-            target_class=Gamalytic,
-            status_code=status_code,
-            json_data=gamalytic_success_response_data,
-        )
-        source = Gamalytic()
-        return source.fetch(steam_appid=steam_appid, selected_labels=selected_labels)
-
-    def test_fetch_success(self, mock_request_response, gamalytic_success_response_data):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            gamalytic_success_response_data=gamalytic_success_response_data,
+    def test_fetch_success(self, source_fetcher, gamalytic_success_response_data):
+        result = source_fetcher(
+            Gamalytic,
+            mock_kwargs={"json_data": gamalytic_success_response_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is True
@@ -39,12 +23,12 @@ class TestGamalytic:
         assert len(result["data"]) == 22
 
     def test_fetch_success_numeric_appid(
-        self, mock_request_response, gamalytic_success_response_data
+        self, source_fetcher, gamalytic_success_response_data
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            gamalytic_success_response_data=gamalytic_success_response_data,
-            steam_appid=12345,
+        result = source_fetcher(
+            Gamalytic,
+            mock_kwargs={"json_data": gamalytic_success_response_data},
+            call_kwargs={"steam_appid": 12345},
         )
 
         assert result["success"] is True
@@ -63,16 +47,16 @@ class TestGamalytic:
     )
     def test_fetch_success_with_filtering(
         self,
-        mock_request_response,
+        source_fetcher,
         gamalytic_success_response_data,
         selected_labels,
         expected_labels,
         expected_len,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            gamalytic_success_response_data=gamalytic_success_response_data,
-            selected_labels=selected_labels,
+        result = source_fetcher(
+            Gamalytic,
+            mock_kwargs={"json_data": gamalytic_success_response_data},
+            call_kwargs={"steam_appid": "12345", "selected_labels": selected_labels},
         )
 
         assert result["success"] is True
@@ -90,10 +74,11 @@ class TestGamalytic:
             (403, {"success": False, "error": "Failed to connect to API. Status code: 403"}),
         ],
     )
-    def test_fetch_error(self, mock_request_response, status_code, expected_error):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
+    def test_fetch_error(self, source_fetcher, status_code, expected_error):
+        result = source_fetcher(
+            Gamalytic,
             status_code=status_code,
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] == expected_error["success"]

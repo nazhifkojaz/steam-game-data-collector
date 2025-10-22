@@ -90,6 +90,102 @@ def stub_ratelimit(monkeypatch):
 
 
 @pytest.fixture
+def source_fetcher(mock_request_response):
+    """Helper fixture to streamline source method calls with mocked responses."""
+
+    def _call(
+        source_cls,
+        *,
+        method: str = "fetch",
+        mock_kwargs: dict | None = None,
+        instantiate_kwargs: dict | None = None,
+        call_kwargs: dict | None = None,
+        status_code: int = 200,
+    ):
+        mock_options = dict(mock_kwargs or {})
+        if "status_code" in mock_options or "side_effect" in mock_options:
+            mock_request_response(
+                target_class=source_cls,
+                **mock_options,
+            )
+        else:
+            mock_request_response(
+                target_class=source_cls,
+                status_code=status_code,
+                **mock_options,
+            )
+
+        source = source_cls(**(instantiate_kwargs or {}))
+        target_method = getattr(source, method)
+        return target_method(**(call_kwargs or {}))
+
+    return _call
+
+
+@pytest.fixture
+def collector_with_mocks(mock_request_response, monkeypatch, request):
+    """Collector instance wired with mocked sources for integration-style tests."""
+    from gameinsights.collector import Collector
+    from gameinsights.sources import (
+        Gamalytic,
+        HowLongToBeat,
+        SteamAchievements,
+        SteamCharts,
+        SteamReview,
+        SteamSpy,
+        SteamStore,
+        howlongtobeat,
+    )
+
+    class SearchInformation:
+        def __init__(self, *args, **kwargs):
+            self.api_key = "mock_api_key"
+            self.search_url = "api/s/"
+
+    monkeypatch.setattr(howlongtobeat, "SearchInformation", SearchInformation)
+
+    sources_payloads = [
+        (
+            Gamalytic,
+            {"mock_kwargs": {"json_data": request.getfixturevalue("gamalytic_success_response_data")}},
+        ),
+        (
+            HowLongToBeat,
+            {"mock_kwargs": {"text_data": request.getfixturevalue("hltb_success_response_data")}},
+        ),
+        (
+            SteamAchievements,
+            {
+                "mock_kwargs": {
+                    "json_data": request.getfixturevalue("achievements_success_response_data")
+                }
+            },
+        ),
+        (
+            SteamCharts,
+            {"mock_kwargs": {"text_data": request.getfixturevalue("steamcharts_success_response_data")}},
+        ),
+        (
+            SteamReview,
+            {"mock_kwargs": {"json_data": request.getfixturevalue("review_only_tchinese")}},
+        ),
+        (
+            SteamSpy,
+            {"mock_kwargs": {"json_data": request.getfixturevalue("steamspy_success_response_data")}},
+        ),
+        (
+            SteamStore,
+            {"mock_kwargs": {"json_data": request.getfixturevalue("steamstore_success_response_data")}},
+        ),
+    ]
+
+    for source_cls, kwargs in sources_payloads:
+        mock_request_response(target_class=source_cls, **kwargs["mock_kwargs"])
+
+    return Collector()
+
+
+@pytest.fixture
 def gamalytic_success_response_data():
     # since we allow impartial result and return pre-defined labels, no need to cover everything
     return {

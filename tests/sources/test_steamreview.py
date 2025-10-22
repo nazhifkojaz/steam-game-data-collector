@@ -26,21 +26,22 @@ class TestSteamReview:
         ],
     )
     def test_fetch_mode_review(
-        self, mock_request_response, request, responses, language, expected_result
+        self, source_fetcher, request, responses, language, expected_result
     ):
-        responses_data = []
-        for response in responses:
-            responses_data.append({"json_data": request.getfixturevalue(response)})
-
-        if len(responses_data) > 1:
-            mock_request_response(target_class=SteamReview, side_effect=responses_data)
+        if len(responses) > 1:
+            mock_kwargs = {
+                "side_effect": [
+                    {"json_data": request.getfixturevalue(response)} for response in responses
+                ]
+            }
         else:
-            mock_request_response(
-                target_class=SteamReview, json_data=responses_data[0]["json_data"]
-            )
+            mock_kwargs = {"json_data": request.getfixturevalue(responses[0])}
 
-        source = SteamReview()
-        result = source.fetch(steam_appid="12345", language=language, mode="review")
+        result = source_fetcher(
+            SteamReview,
+            mock_kwargs=mock_kwargs,
+            call_kwargs={"steam_appid": "12345", "language": language, "mode": "review"},
+        )
 
         assert result["success"] is True
 
@@ -72,17 +73,20 @@ class TestSteamReview:
     )
     def test_fetch_mode_review_with_label_filtering(
         self,
-        mock_request_response,
+        source_fetcher,
         review_only_tchinese,
         selected_labels,
         expected_labels,
     ):
-        mock_request_response(
-            target_class=SteamReview,
-            json_data=review_only_tchinese,
+        result = source_fetcher(
+            SteamReview,
+            mock_kwargs={"json_data": review_only_tchinese},
+            call_kwargs={
+                "steam_appid": "12345",
+                "mode": "review",
+                "selected_labels": selected_labels,
+            },
         )
-        source = SteamReview()
-        result = source.fetch(steam_appid="12345", mode="review", selected_labels=selected_labels)
 
         assert result["success"] is True
 
@@ -104,14 +108,13 @@ class TestSteamReview:
         ],
     )
     def test_fetch_mode_summary(
-        self, mock_request_response, request, response, language, expected_total_reviews
+        self, source_fetcher, request, response, language, expected_total_reviews
     ):
-        mock_request_response(
-            target_class=SteamReview, json_data=request.getfixturevalue(response)
+        result = source_fetcher(
+            SteamReview,
+            mock_kwargs={"json_data": request.getfixturevalue(response)},
+            call_kwargs={"steam_appid": "12345", "language": language, "mode": "summary"},
         )
-
-        source = SteamReview()
-        result = source.fetch(steam_appid="12345", language=language, mode="summary")
 
         assert result["success"] is True
         assert result["data"]["total_reviews"] == expected_total_reviews
@@ -136,17 +139,20 @@ class TestSteamReview:
     )
     def test_fetch_mode_summary_with_label_filtering(
         self,
-        mock_request_response,
+        source_fetcher,
         review_only_tchinese,
         selected_labels,
         expected_labels,
     ):
-        mock_request_response(
-            target_class=SteamReview,
-            json_data=review_only_tchinese,
+        result = source_fetcher(
+            SteamReview,
+            mock_kwargs={"json_data": review_only_tchinese},
+            call_kwargs={
+                "steam_appid": "12345",
+                "mode": "summary",
+                "selected_labels": selected_labels,
+            },
         )
-        source = SteamReview()
-        result = source.fetch(steam_appid="12345", mode="summary", selected_labels=selected_labels)
 
         assert result["success"] is True
 
@@ -187,17 +193,17 @@ class TestSteamReview:
     )
     def test_fetch_error(
         self,
-        mock_request_response,
+        source_fetcher,
         request,
         mode,
         response,
         expected_error,
     ):
-        mock_request_response(
-            target_class=SteamReview, json_data=request.getfixturevalue(response)
+        result = source_fetcher(
+            SteamReview,
+            mock_kwargs={"json_data": request.getfixturevalue(response)},
+            call_kwargs={"steam_appid": "12345", "mode": mode},
         )
-        source = SteamReview()
-        result = source.fetch(steam_appid="12345", mode=mode)
 
         assert result["success"] is False
         assert "error" in result

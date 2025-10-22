@@ -6,27 +6,12 @@ from gameinsights.sources.steamstore import SteamStore
 
 class TestSteamStore:
 
-    def _setup_fetch(
-        self,
-        mock_request_response,
-        status_code=200,
-        response_data=None,
-        steam_appid="12345",
-        selected_labels=None,
-    ):
-        mock_request_response(
-            target_class=SteamStore, status_code=status_code, json_data=response_data
-        )
-
-        # predefined with the default region since if the region/language inputted invalid, it'll default to the region where the user ip's region
-        source = SteamStore(region="us", language="english")
-
-        return source.fetch(steam_appid=steam_appid, selected_labels=selected_labels)
-
-    def test_fetch_success(self, mock_request_response, steamstore_success_response_data):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamstore_success_response_data,
+    def test_fetch_success(self, source_fetcher, steamstore_success_response_data):
+        result = source_fetcher(
+            SteamStore,
+            instantiate_kwargs={"region": "us", "language": "english"},
+            mock_kwargs={"json_data": steamstore_success_response_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is True
@@ -40,12 +25,14 @@ class TestSteamStore:
 
     def test_fetch_success_unexpected_data(
         self,
-        mock_request_response,
+        source_fetcher,
         steamstore_success_partial_unexpected_data,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamstore_success_partial_unexpected_data,
+        result = source_fetcher(
+            SteamStore,
+            instantiate_kwargs={"region": "us", "language": "english"},
+            mock_kwargs={"json_data": steamstore_success_partial_unexpected_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is True
@@ -76,15 +63,16 @@ class TestSteamStore:
     )
     def test_fetch_with_filtering(
         self,
-        mock_request_response,
+        source_fetcher,
         steamstore_success_response_data,
         selected_labels,
         expected_labels,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamstore_success_response_data,
-            selected_labels=selected_labels,
+        result = source_fetcher(
+            SteamStore,
+            instantiate_kwargs={"region": "us", "language": "english"},
+            mock_kwargs={"json_data": steamstore_success_response_data},
+            call_kwargs={"steam_appid": "12345", "selected_labels": selected_labels},
         )
 
         assert result["success"] is True
@@ -95,11 +83,13 @@ class TestSteamStore:
 
     def test_fetch_error_connection_fail(
         self,
-        mock_request_response,
+        source_fetcher,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
+        result = source_fetcher(
+            SteamStore,
+            instantiate_kwargs={"region": "us", "language": "english"},
             status_code=400,
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is False
@@ -107,11 +97,13 @@ class TestSteamStore:
         assert result["error"] == "Failed to connect to API. Status code: 400."
 
     def test_fetch_error_game_not_found(
-        self, mock_request_response, steamstore_not_found_response_data
+        self, source_fetcher, steamstore_not_found_response_data
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamstore_not_found_response_data,
+        result = source_fetcher(
+            SteamStore,
+            instantiate_kwargs={"region": "us", "language": "english"},
+            mock_kwargs={"json_data": steamstore_not_found_response_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is False
