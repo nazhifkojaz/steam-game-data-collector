@@ -54,6 +54,42 @@ def mock_request_response(monkeypatch):
 
 
 @pytest.fixture
+def stub_ratelimit(monkeypatch):
+    import gameinsights.utils.ratelimit as ratelimit_module
+
+    class StubRateLimitException(Exception):
+        def __init__(self, message="rate limit exceeded", period_remaining=0.0):
+            super().__init__(message)
+            self.period_remaining = period_remaining
+
+    class StubLimiter:
+        def __init__(self):
+            self.limits_invocations = 0
+
+        def limits(self, *, calls: int, period: int):
+            self.limits_invocations += 1
+            state = {"count": 0}
+
+            def decorator(func):
+                def wrapped(*args, **kwargs):
+                    if state["count"] >= calls:
+                        state["count"] = 0
+                        raise StubRateLimitException("Rate limit exceeded", float(period))
+                    state["count"] += 1
+                    return func(*args, **kwargs)
+
+                return wrapped
+
+            return decorator
+
+    stub = StubLimiter()
+    monkeypatch.setattr(ratelimit_module, "RateLimitException", StubRateLimitException)
+    monkeypatch.setattr(ratelimit_module, "limits", stub.limits)
+
+    return stub
+
+
+@pytest.fixture
 def gamalytic_success_response_data():
     # since we allow impartial result and return pre-defined labels, no need to cover everything
     return {
