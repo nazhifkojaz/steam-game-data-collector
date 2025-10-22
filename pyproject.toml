@@ -92,3 +92,6 @@ module = [
     "ratelimit.*"
 ]
 ignore_missing_imports = true
+
+[tool.poetry.scripts]
+gameinsights = "gameinsights.cli:main"
