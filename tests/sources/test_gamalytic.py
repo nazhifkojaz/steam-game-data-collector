@@ -22,9 +22,7 @@ class TestGamalytic:
         # and leave 2 commented
         assert len(result["data"]) == 22
 
-    def test_fetch_success_numeric_appid(
-        self, source_fetcher, gamalytic_success_response_data
-    ):
+    def test_fetch_success_numeric_appid(self, source_fetcher, gamalytic_success_response_data):
         result = source_fetcher(
             Gamalytic,
             mock_kwargs={"json_data": gamalytic_success_response_data},

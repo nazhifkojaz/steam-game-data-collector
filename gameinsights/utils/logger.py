@@ -20,7 +20,9 @@ class LoggerWrapper:
             self._logger.addHandler(handler)
             self._logger.setLevel(logging.INFO)
 
-    def log(self, message: str, level: str = "info", verbose: bool = False, **context: Any) -> None:
+    def log(
+        self, message: str, level: str = "info", verbose: bool = False, **context: Any
+    ) -> None:
         """Log the message at the specified level.
         Args:
             message (str): The message to log.
@@ -33,7 +35,9 @@ class LoggerWrapper:
         formatted = self._format_message(message, context)
         getattr(self._logger, level.lower())(formatted)
 
-    def log_event(self, event: str, level: str = "info", verbose: bool = False, **context: Any) -> None:
+    def log_event(
+        self, event: str, level: str = "info", verbose: bool = False, **context: Any
+    ) -> None:
         """Emit a structured log event with optional context."""
         payload = dict(context)
         payload.setdefault("event", event)
@@ -52,7 +56,9 @@ class LoggerWrapper:
                 safe_payload = {key: self._stringify(value) for key, value in payload.items()}
                 return json.dumps(safe_payload)
 
-        kv_pairs = " ".join(f"{key}={self._stringify(value)}" for key, value in sorted(context.items()))
+        kv_pairs = " ".join(
+            f"{key}={self._stringify(value)}" for key, value in sorted(context.items())
+        )
         return f"{message} | {kv_pairs}"
 
     @staticmethod

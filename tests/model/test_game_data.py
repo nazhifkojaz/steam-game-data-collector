@@ -40,8 +40,7 @@ class TestGameDataModel:
             {
                 "steam_appid": "12345",
                 "release_date": lambda value: (
-                    isinstance(value, datetime)
-                    and value == datetime(2025, 1, 1)
+                    isinstance(value, datetime) and value == datetime(2025, 1, 1)
                 ),
             },
         )

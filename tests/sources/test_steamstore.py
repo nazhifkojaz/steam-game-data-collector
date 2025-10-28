@@ -96,9 +96,7 @@ class TestSteamStore:
         assert "error" in result
         assert result["error"] == "Failed to connect to API. Status code: 400."
 
-    def test_fetch_error_game_not_found(
-        self, source_fetcher, steamstore_not_found_response_data
-    ):
+    def test_fetch_error_game_not_found(self, source_fetcher, steamstore_not_found_response_data):
         result = source_fetcher(
             SteamStore,
             instantiate_kwargs={"region": "us", "language": "english"},

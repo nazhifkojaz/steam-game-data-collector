@@ -44,11 +44,8 @@ def logged_rate_limited(
             actual_period = period if period is not None else getattr(self, "period", 60)
 
             cache = getattr(self, cache_attr, None)
-            if (
-                cache is None
-                or cache["calls"] != actual_calls
-                or cache["period"] != actual_period
-            ):
+            if cache is None or cache["calls"] != actual_calls or cache["period"] != actual_period:
+
                 def bound(*call_args: Any, **call_kwargs: Any) -> Any:
                     return func(self, *call_args, **call_kwargs)
 

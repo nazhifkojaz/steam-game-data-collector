@@ -147,7 +147,11 @@ def collector_with_mocks(mock_request_response, monkeypatch, request):
     sources_payloads = [
         (
             Gamalytic,
-            {"mock_kwargs": {"json_data": request.getfixturevalue("gamalytic_success_response_data")}},
+            {
+                "mock_kwargs": {
+                    "json_data": request.getfixturevalue("gamalytic_success_response_data")
+                }
+            },
         ),
         (
             HowLongToBeat,
@@ -163,7 +167,11 @@ def collector_with_mocks(mock_request_response, monkeypatch, request):
         ),
         (
             SteamCharts,
-            {"mock_kwargs": {"text_data": request.getfixturevalue("steamcharts_success_response_data")}},
+            {
+                "mock_kwargs": {
+                    "text_data": request.getfixturevalue("steamcharts_success_response_data")
+                }
+            },
         ),
         (
             SteamReview,
@@ -171,11 +179,19 @@ def collector_with_mocks(mock_request_response, monkeypatch, request):
         ),
         (
             SteamSpy,
-            {"mock_kwargs": {"json_data": request.getfixturevalue("steamspy_success_response_data")}},
+            {
+                "mock_kwargs": {
+                    "json_data": request.getfixturevalue("steamspy_success_response_data")
+                }
+            },
         ),
         (
             SteamStore,
-            {"mock_kwargs": {"json_data": request.getfixturevalue("steamstore_success_response_data")}},
+            {
+                "mock_kwargs": {
+                    "json_data": request.getfixturevalue("steamstore_success_response_data")
+                }
+            },
         ),
     ]
 

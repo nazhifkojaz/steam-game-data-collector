@@ -41,13 +41,20 @@ def _build_source_index(configs: Iterable[SourceConfig]) -> dict[str, set[str]]:
     return index
 
 
-def _filter_records(records: list[dict[str, Any]], allowed_fields: set[str]) -> list[dict[str, Any]]:
+def _filter_records(
+    records: list[dict[str, Any]], allowed_fields: set[str]
+) -> list[dict[str, Any]]:
     if not allowed_fields:
         return records
-    return [{key: value for key, value in record.items() if key in allowed_fields} for record in records]
+    return [
+        {key: value for key, value in record.items() if key in allowed_fields}
+        for record in records
+    ]
 
 
-def _output_data(data: list[dict[str, Any]] | pd.DataFrame, fmt: str, output_path: str | None) -> None:
+def _output_data(
+    data: list[dict[str, Any]] | pd.DataFrame, fmt: str, output_path: str | None
+) -> None:
     if fmt == "json":
         payload = data.to_dict(orient="records") if isinstance(data, pd.DataFrame) else data
         rendered = json.dumps(payload, indent=2, default=str)

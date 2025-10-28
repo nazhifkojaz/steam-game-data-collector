@@ -42,10 +42,14 @@ class _DummyCollector:
     def name_based_sources(self) -> list[SourceConfig]:
         return self._name_based_sources
 
-    def get_games_data(self, steam_appids: list[str], recap: bool = False, verbose: bool = False) -> list[dict[str, Any]]:
+    def get_games_data(
+        self, steam_appids: list[str], recap: bool = False, verbose: bool = False
+    ) -> list[dict[str, Any]]:
         return self._records
 
-    def get_games_active_player_data(self, steam_appids: list[str], verbose: bool = False) -> pd.DataFrame:
+    def get_games_active_player_data(
+        self, steam_appids: list[str], verbose: bool = False
+    ) -> pd.DataFrame:
         data = {
             "steam_appid": ["12345"],
             "active_player_24h": [111],

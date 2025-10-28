@@ -31,12 +31,8 @@ class TestCollector:
         [("12345", 1), (["12345", "12345"], 2), ([], 0)],
         ids=["single_appid", "multiple_appids", "empty_appids"],
     )
-    def test_get_games_active_player_data(
-        self, collector_with_mocks, appids, expected_len
-    ):
-        active_player_data = collector_with_mocks.get_games_active_player_data(
-            steam_appids=appids
-        )
+    def test_get_games_active_player_data(self, collector_with_mocks, appids, expected_len):
+        active_player_data = collector_with_mocks.get_games_active_player_data(steam_appids=appids)
 
         assert isinstance(active_player_data, pd.DataFrame)
         assert len(active_player_data) == expected_len

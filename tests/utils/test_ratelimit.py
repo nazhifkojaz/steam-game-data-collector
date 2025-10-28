@@ -3,9 +3,7 @@ import pytest
 
 class TestRateLimit:
 
-    def test_logged_rate_limited_allows_calls_within_budget(
-        self, stub_ratelimit, monkeypatch
-    ):
+    def test_logged_rate_limited_allows_calls_within_budget(self, stub_ratelimit, monkeypatch):
         from gameinsights.utils.ratelimit import logged_rate_limited
 
         sleep_calls = []
@@ -32,9 +30,7 @@ class TestRateLimit:
         assert sleep_calls == []
         assert stub_ratelimit.limits_invocations == 1
 
-    def test_logged_rate_limited_retries_and_logs(
-        self, stub_ratelimit, monkeypatch, caplog
-    ):
+    def test_logged_rate_limited_retries_and_logs(self, stub_ratelimit, monkeypatch, caplog):
         from gameinsights.utils.ratelimit import logged_rate_limited
 
         sleep_calls = []
@@ -88,9 +84,7 @@ class TestRateLimit:
         dummy.do_work()
         assert stub_ratelimit.limits_invocations == 2
 
-    def test_logged_rate_limited_propagates_non_ratelimit_error(
-        self, stub_ratelimit
-    ):
+    def test_logged_rate_limited_propagates_non_ratelimit_error(self, stub_ratelimit):
         from gameinsights.utils.ratelimit import logged_rate_limited
 
         class Dummy:

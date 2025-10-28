@@ -84,9 +84,7 @@ class TestSteamCharts:
             "incorrect_player_data_table_structure",
         ],
     )
-    def test_fetch_parse_error(
-        self, source_fetcher, request, response_data, expected_error
-    ):
+    def test_fetch_parse_error(self, source_fetcher, request, response_data, expected_error):
 
         response_text = request.getfixturevalue(response_data)
 
