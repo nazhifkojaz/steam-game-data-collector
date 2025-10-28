@@ -64,32 +64,33 @@ class Test_SteamAchievements:
     )
     def test_fetch_success(
         self,
-        mock_request_response,
+        source_fetcher,
         achievements_success_response_data,
         scheme_success_response_data,
         api_key,
         selected_labels,
         expected_result,
     ):
-        source = SteamAchievements(api_key=api_key)
-
-        # if api_key is assigned, use the side_effect to mock multiple times
-        if api_key:
-            mock_request_response(
-                target_class=SteamAchievements,
-                side_effect=[
+        mock_kwargs = (
+            {
+                "side_effect": [
                     {"json_data": achievements_success_response_data},
                     {"json_data": scheme_success_response_data},
-                ],
-            )
-        else:
-            mock_request_response(
-                target_class=SteamAchievements, json_data=achievements_success_response_data
-            )
+                ]
+            }
+            if api_key
+            else {"json_data": achievements_success_response_data}
+        )
 
-        result = source.fetch(
-            steam_appid="12345",
-            selected_labels=selected_labels,
+        call_kwargs = {"steam_appid": "12345"}
+        if selected_labels is not None:
+            call_kwargs["selected_labels"] = selected_labels
+
+        result = source_fetcher(
+            SteamAchievements,
+            instantiate_kwargs={"api_key": api_key} if api_key else None,
+            mock_kwargs=mock_kwargs,
+            call_kwargs=call_kwargs,
         )
 
         assert result["success"] is True
@@ -97,15 +98,12 @@ class Test_SteamAchievements:
         assert result["data"] == expected_result
 
     def test_fetch_unexpected_data(
-        self, mock_request_response, achievements_success_with_unexpected_data
+        self, source_fetcher, achievements_success_with_unexpected_data
     ):
-        mock_request_response(
-            target_class=SteamAchievements,
-            json_data=achievements_success_with_unexpected_data,
-        )
-        source = SteamAchievements()
-        result = source.fetch(
-            steam_appid="12345",
+        result = source_fetcher(
+            SteamAchievements,
+            mock_kwargs={"json_data": achievements_success_with_unexpected_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is True
@@ -123,29 +121,28 @@ class Test_SteamAchievements:
     )
     def test_fetch_error(
         self,
-        mock_request_response,
+        source_fetcher,
         api_key,
         achievements_status_code,
         schema_status_code,
         expected_result,
     ):
-        source = SteamAchievements(api_key=api_key)
-        if api_key:
-            mock_request_response(
-                target_class=SteamAchievements,
-                side_effect=[
+        mock_kwargs = (
+            {
+                "side_effect": [
                     {"status_code": achievements_status_code},
                     {"status_code": schema_status_code},
-                ],
-            )
-        else:
-            mock_request_response(
-                target_class=SteamAchievements,
-                status_code=achievements_status_code,
-            )
+                ]
+            }
+            if api_key
+            else {"status_code": achievements_status_code}
+        )
 
-        result = source.fetch(
-            steam_appid="12345",
+        result = source_fetcher(
+            SteamAchievements,
+            instantiate_kwargs={"api_key": api_key} if api_key else None,
+            mock_kwargs=mock_kwargs,
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is False

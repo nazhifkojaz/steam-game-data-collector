@@ -36,17 +36,31 @@ def logged_rate_limited(
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        cache_attr = f"__logged_rate_limit_cache_{func.__name__}"
+
         @wraps(func)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
             actual_calls = calls if calls is not None else getattr(self, "calls", 60)
             actual_period = period if period is not None else getattr(self, "period", 60)
 
-            @logged_sleep_and_retry
-            @limits(calls=actual_calls, period=actual_period)  # type: ignore[misc]
-            def limited_execution() -> Any:
-                return func(self, *args, **kwargs)
+            cache = getattr(self, cache_attr, None)
+            if cache is None or cache["calls"] != actual_calls or cache["period"] != actual_period:
 
-            return limited_execution()
+                def bound(*call_args: Any, **call_kwargs: Any) -> Any:
+                    return func(self, *call_args, **call_kwargs)
+
+                limited: Callable[..., Any] = logged_sleep_and_retry(
+                    limits(calls=actual_calls, period=actual_period)(bound)
+                )
+                cache = {
+                    "calls": actual_calls,
+                    "period": actual_period,
+                    "limited": limited,
+                }
+                setattr(self, cache_attr, cache)
+
+            limited_execution = cache["limited"]
+            return limited_execution(*args, **kwargs)
 
         return wrapper
 

@@ -19,6 +19,7 @@ fake-useragent = "^2.2.0"
 ratelimit = "^2.2.1"
 rapidfuzz = "^3.13.0"
 pydantic = "^2.11.7"
+pandas = "^2.3.3"
 
 
 [tool.poetry.group.notebooks.dependencies]
@@ -36,6 +37,7 @@ commitizen = "^4.8.3"
 pytest = "^8.4.1"
 pytest-cov = "^6.2.1"
 pandas-stubs = "^2.2.2"
+types-beautifulsoup4 = "^4.12.0.20240206"
 
 
 [tool.commitizen]
@@ -92,3 +94,6 @@ module = [
     "ratelimit.*"
 ]
 ignore_missing_imports = true
+
+[tool.poetry.scripts]
+gameinsights = "gameinsights.cli:main"

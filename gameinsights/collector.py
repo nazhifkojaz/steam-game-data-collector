@@ -5,7 +5,8 @@ import pandas as pd
 
 from gameinsights import sources
 from gameinsights.model.game_data import GameDataModel
-from gameinsights.utils import LoggerWrapper
+from gameinsights.sources.base import SourceResult
+from gameinsights.utils import LoggerWrapper, metrics
 from gameinsights.utils.ratelimit import logged_rate_limited
 
 
@@ -410,10 +411,16 @@ class Collector:
         Returns:
             dict: The combined game data from all sources.
         """
-        raw_data: dict[str, Any] = {"steam_appid": str(steam_appid)}
+        identifier = str(steam_appid)
+        raw_data: dict[str, Any] = {"steam_appid": identifier}
 
         for config in self.id_based_sources:
-            source_data = config.source.fetch(steam_appid, verbose=verbose)
+            source_data = self._fetch_with_observability(
+                config.source,
+                identifier=identifier,
+                scope="id",
+                verbose=verbose,
+            )
             if source_data["success"]:
                 raw_data.update({key: source_data["data"][key] for key in config.fields})
 
@@ -421,8 +428,65 @@ class Collector:
         game_name = raw_data.get("name", None)
         if game_name:
             for config in self.name_based_sources:
-                source_data = config.source.fetch(game_name, verbose=verbose)
+                source_data = self._fetch_with_observability(
+                    config.source,
+                    identifier=game_name,
+                    scope="name",
+                    verbose=verbose,
+                )
                 if source_data["success"]:
                     raw_data.update({key: source_data["data"][key] for key in config.fields})
 
         return GameDataModel(**raw_data)
+
+    def _fetch_with_observability(
+        self,
+        source: sources.BaseSource,
+        identifier: str,
+        scope: Literal["id", "name"],
+        verbose: bool,
+    ) -> SourceResult:
+        source_name = source.__class__.__name__
+        source.logger.log_event(
+            "source_fetch_start",
+            verbose=verbose,
+            scope=scope,
+            identifier=identifier,
+        )
+
+        try:
+            with metrics.timer(
+                "source_fetch_duration_seconds",
+                source=source_name,
+                scope=scope,
+            ) as timing:
+                result = source.fetch(identifier, verbose=verbose)
+        except Exception as exc:
+            metrics.counter("source_fetch_exception_total", source=source_name, scope=scope)
+            source.logger.log_event(
+                "source_fetch_exception",
+                level="error",
+                verbose=True,
+                scope=scope,
+                identifier=identifier,
+                error=str(exc),
+            )
+            raise
+
+        duration_ms = round(timing.duration * 1000, 2)
+        metrics.counter("source_fetch_total", source=source_name, scope=scope)
+        if result["success"]:
+            metrics.counter("source_fetch_success_total", source=source_name, scope=scope)
+        else:
+            metrics.counter("source_fetch_error_total", source=source_name, scope=scope)
+
+        source.logger.log_event(
+            "source_fetch_complete",
+            verbose=verbose,
+            scope=scope,
+            identifier=identifier,
+            success=result["success"],
+            duration_ms=duration_ms,
+        )
+
+        return result

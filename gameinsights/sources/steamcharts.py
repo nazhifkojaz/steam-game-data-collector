@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any
 
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 from gameinsights.sources.base import BaseSource, SourceResult, SuccessResult
 from gameinsights.utils.ratelimit import logged_rate_limited
@@ -65,32 +66,34 @@ class SteamCharts(BaseSource):
         soup = BeautifulSoup(response.text, "html.parser")
 
         # check the name part
-        game_name = soup.find("h1", id="app-title")
-        if not game_name:
+        game_name_tag = soup.find("h1", id="app-title")
+        if not isinstance(game_name_tag, Tag):
             return self._build_error_result(
                 "Failed to parse data, game name is not found.", verbose=verbose
             )
 
         # check stats data
-        peak_data = soup.find_all("div", class_="app-stat")
+        peak_data_result = soup.find_all("div", class_="app-stat")
+        peak_data: list[Tag] = [tag for tag in peak_data_result if isinstance(tag, Tag)]
         if len(peak_data) < 3:
             return self._build_error_result(
                 "Failed to parse data, expecting atleast 3 'app-stat' divs.", verbose=verbose
             )
-        for data in peak_data:
-            if not data.find("span", class_="num"):  # type: ignore[union-attr, call-arg]
+        for stat in peak_data:
+            if stat.find("span", class_="num") is None:
                 return self._build_error_result(
                     "Failed to parse data, incorrect app-stat structure.", verbose=verbose
                 )
 
         active_player_data_table = soup.find("table", class_="common-table")
-        if not active_player_data_table:
+        if not isinstance(active_player_data_table, Tag):
             return self._build_error_result(
                 "Failed to parse data, active player data table is not found.", verbose=verbose
             )
 
         # Skip the "last 30 days" row
-        player_data_rows = active_player_data_table.find_all("tr")[2:]  # type: ignore[attr-defined]
+        player_rows_result = active_player_data_table.find_all("tr")
+        player_data_rows = [row for row in player_rows_result if isinstance(row, Tag)][2:]
 
         # check the cols whether the table structure is correct (only when the player_data_rows is populated)
         if len(player_data_rows) > 0:
@@ -105,7 +108,7 @@ class SteamCharts(BaseSource):
             "steam_appid": steam_appid,
             **self._transform_data(
                 {
-                    "game_name": game_name,
+                    "game_name": game_name_tag,
                     "peak_data": peak_data,
                     "player_data_rows": player_data_rows,
                 }

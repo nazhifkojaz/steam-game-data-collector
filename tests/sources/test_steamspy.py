@@ -4,29 +4,11 @@ from gameinsights.sources.steamspy import SteamSpy
 
 
 class TestSteamSpy:
-
-    def _setup_fetch(
-        self,
-        mock_request_response,
-        status_code=200,
-        response_data=None,
-        steam_appid="12345",
-        selected_labels=None,
-    ):
-        mock_request_response(
-            target_class=SteamSpy,
-            status_code=status_code,
-            json_data=response_data,
-        )
-
-        source = SteamSpy()
-
-        return source.fetch(steam_appid=steam_appid, selected_labels=selected_labels)
-
-    def test_fetch_success(self, mock_request_response, steamspy_success_response_data):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamspy_success_response_data,
+    def test_fetch_success(self, source_fetcher, steamspy_success_response_data):
+        result = source_fetcher(
+            SteamSpy,
+            mock_kwargs={"json_data": steamspy_success_response_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is True
@@ -36,12 +18,13 @@ class TestSteamSpy:
 
     def test_fetch_success_unexpected_data(
         self,
-        mock_request_response,
+        source_fetcher,
         steamspy_success_unexpected_data,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamspy_success_unexpected_data,
+        result = source_fetcher(
+            SteamSpy,
+            mock_kwargs={"json_data": steamspy_success_unexpected_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is True
@@ -65,15 +48,15 @@ class TestSteamSpy:
     )
     def test_fetch_success_with_filtering(
         self,
-        mock_request_response,
+        source_fetcher,
         steamspy_success_response_data,
         selected_labels,
         expected_labels,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamspy_success_response_data,
-            selected_labels=selected_labels,
+        result = source_fetcher(
+            SteamSpy,
+            mock_kwargs={"json_data": steamspy_success_response_data},
+            call_kwargs={"steam_appid": "12345", "selected_labels": selected_labels},
         )
 
         assert result["success"] is True
@@ -84,23 +67,23 @@ class TestSteamSpy:
 
     def test_fetch_error_connection_fail(
         self,
-        mock_request_response,
+        source_fetcher,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
+        result = source_fetcher(
+            SteamSpy,
             status_code=400,
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is False
         assert "error" in result
         assert result["error"] == "Failed to connect to API. Status code: 400"
 
-    def test_fetch_error_game_not_found(
-        self, mock_request_response, steamspy_not_found_response_data
-    ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamspy_not_found_response_data,
+    def test_fetch_error_game_not_found(self, source_fetcher, steamspy_not_found_response_data):
+        result = source_fetcher(
+            SteamSpy,
+            mock_kwargs={"json_data": steamspy_not_found_response_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is False

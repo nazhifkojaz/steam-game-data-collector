@@ -4,30 +4,16 @@ from gameinsights.sources.steamcharts import SteamCharts
 
 
 class TestSteamCharts:
-    def _setup_fetch(
-        self,
-        mock_request_response,
-        status_code=200,
-        response_data=None,
-        steam_appid="12345",
-        selected_labels=None,
-    ):
-        mock_request_response(
-            target_class=SteamCharts, status_code=status_code, text_data=response_data
-        )
-
-        source = SteamCharts()
-
-        return source.fetch(steam_appid=steam_appid, selected_labels=selected_labels)
 
     def test_fetch_success(
         self,
-        mock_request_response,
+        source_fetcher,
         steamcharts_success_response_data,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamcharts_success_response_data,
+        result = source_fetcher(
+            SteamCharts,
+            mock_kwargs={"text_data": steamcharts_success_response_data},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is True
@@ -47,16 +33,16 @@ class TestSteamCharts:
     )
     def test_fetch_success_with_filtering(
         self,
-        mock_request_response,
+        source_fetcher,
         steamcharts_success_response_data,
         selected_labels,
         expected_labels,
         expected_len,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=steamcharts_success_response_data,
-            selected_labels=selected_labels,
+        result = source_fetcher(
+            SteamCharts,
+            mock_kwargs={"text_data": steamcharts_success_response_data},
+            call_kwargs={"steam_appid": "12345", "selected_labels": selected_labels},
         )
 
         assert result["success"] is True
@@ -98,15 +84,14 @@ class TestSteamCharts:
             "incorrect_player_data_table_structure",
         ],
     )
-    def test_fetch_parse_error(
-        self, mock_request_response, request, response_data, expected_error
-    ):
+    def test_fetch_parse_error(self, source_fetcher, request, response_data, expected_error):
 
         response_text = request.getfixturevalue(response_data)
 
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=response_text,
+        result = source_fetcher(
+            SteamCharts,
+            mock_kwargs={"text_data": response_text},
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] is False
@@ -121,10 +106,11 @@ class TestSteamCharts:
             (403, {"success": False, "error": "Failed to fetch data with status code: "}),
         ],
     )
-    def test_fetch_error(self, mock_request_response, status_code, expected_error):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
+    def test_fetch_error(self, source_fetcher, status_code, expected_error):
+        result = source_fetcher(
+            SteamCharts,
             status_code=status_code,
+            call_kwargs={"steam_appid": "12345"},
         )
 
         assert result["success"] == expected_error["success"]

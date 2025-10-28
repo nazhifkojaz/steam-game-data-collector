@@ -15,24 +15,11 @@ class TestHowLongToBeat:
 
         monkeypatch.setattr(howlongtobeat, "SearchInformation", SearchInformation)
 
-    def _setup_fetch(
-        self,
-        mock_request_response,
-        status_code=200,
-        response_data=None,
-        game_name="mock_name",
-        selected_labels=None,
-    ):
-        mock_request_response(
-            target_class=HowLongToBeat, status_code=status_code, text_data=response_data
-        )
-        source = HowLongToBeat()
-        return source.fetch(game_name=game_name, selected_labels=selected_labels)
-
-    def test_fetch_success(self, mock_request_response, hltb_success_response_data):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=hltb_success_response_data,
+    def test_fetch_success(self, source_fetcher, hltb_success_response_data):
+        result = source_fetcher(
+            HowLongToBeat,
+            mock_kwargs={"text_data": hltb_success_response_data},
+            call_kwargs={"game_name": "mock_name"},
         )
 
         assert result["success"] is True
@@ -55,16 +42,16 @@ class TestHowLongToBeat:
     )
     def test_fetch_success_with_filtering(
         self,
-        mock_request_response,
+        source_fetcher,
         hltb_success_response_data,
         selected_labels,
         expected_labels,
         expected_len,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=hltb_success_response_data,
-            selected_labels=selected_labels,
+        result = source_fetcher(
+            HowLongToBeat,
+            mock_kwargs={"text_data": hltb_success_response_data},
+            call_kwargs={"game_name": "mock_name", "selected_labels": selected_labels},
         )
 
         assert result["success"] is True
@@ -76,12 +63,13 @@ class TestHowLongToBeat:
 
     def test_fetch_success_but_empty_game_not_found(
         self,
-        mock_request_response,
+        source_fetcher,
         hltb_success_but_not_found_data,
     ):
-        result = self._setup_fetch(
-            mock_request_response=mock_request_response,
-            response_data=hltb_success_but_not_found_data,
+        result = source_fetcher(
+            HowLongToBeat,
+            mock_kwargs={"text_data": hltb_success_but_not_found_data},
+            call_kwargs={"game_name": "mock_name"},
         )
 
         assert result["success"] is False
@@ -93,7 +81,7 @@ class TestHowLongToBeat:
         def mock_method(*args, **kwargs):
             return None
 
-        monkeypatch.setattr(HowLongToBeat, "_make_request", mock_method)
+        monkeypatch.setattr(HowLongToBeat, "_fetch_search_results", mock_method)
 
         source = HowLongToBeat()
         result = source.fetch(game_name="mock_data")

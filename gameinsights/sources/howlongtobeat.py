@@ -5,10 +5,11 @@
 
 import json
 import re
-from typing import Any
+from typing import Any, cast
 
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from fake_useragent import UserAgent
 
 from gameinsights.sources.base import BaseSource, SourceResult, SuccessResult
@@ -44,8 +45,8 @@ class SearchInformation:
     """Class to hold search information extracted from the HLTB script."""
 
     def __init__(self, title_headers: dict[str, Any]) -> None:
-        self.api_key = None
-        self.search_url = None
+        self.api_key: str | None = None
+        self.search_url: str | None = None
         self._get_search_informations(title_headers=title_headers)
         if self.search_url:
             self.search_url = self.search_url.lstrip("/")
@@ -109,23 +110,26 @@ class SearchInformation:
             soup = BeautifulSoup(response.text, "html.parser")
             scripts = soup.find_all("script", src=True)
 
-            matching_scripts = []
-            non_matching_scripts = []
+            matching_scripts: list[str] = []
+            non_matching_scripts: list[str] = []
 
             for script in scripts:
-                src = script.get("src")  # type: ignore[union-attr]
-                if src:
-                    if "_app-" in src:
-                        matching_scripts.append(src)
+                if not isinstance(script, Tag):
+                    continue
+
+                src_attr = script.get("src")
+                if isinstance(src_attr, str):
+                    if "_app-" in src_attr:
+                        matching_scripts.append(src_attr)
                     else:
-                        non_matching_scripts.append(src)
+                        non_matching_scripts.append(src_attr)
 
             # look for scripts that provide the api key
-            self._process_script(matching_scripts, title_headers=title_headers)  # type: ignore[arg-type]
+            self._process_script(matching_scripts, title_headers=title_headers)
 
             # if we still don't have the api key, try to get it from the other scripts
             if self.api_key is None:
-                self._process_script(non_matching_scripts, title_headers=title_headers)  # type: ignore[arg-type]
+                self._process_script(non_matching_scripts, title_headers=title_headers)
 
     def _process_script(self, script_urls: list[str], title_headers: dict[str, Any]) -> None:
         """Process the script content to extract API key and search URL.
@@ -136,8 +140,8 @@ class SearchInformation:
             script_url = HowLongToBeat.BASE_URL + script_url
             script_response = requests.get(script_url, headers=title_headers, timeout=60)
             if script_response.status_code == 200 and script_response.text:
-                self.api_key = self._extract_api_from_script(script_response.text)  # type: ignore[assignment]
-                self.search_url = self._extract_search_url_script(script_response.text)  # type: ignore[assignment]
+                self.api_key = self._extract_api_from_script(script_response.text)
+                self.search_url = self._extract_search_url_script(script_response.text)
                 if self.api_key:
                     break
 
@@ -154,7 +158,7 @@ class HowLongToBeat(BaseSource):
         """Initialize the HowLongToBeat source."""
         super().__init__()
         title_headers = HowLongToBeat._get_title_request_headers()
-        self._search_info_data = SearchInformation(title_headers=title_headers)
+        self._search_info_data: SearchInformation = SearchInformation(title_headers=title_headers)
 
     @logged_rate_limited(calls=60, period=60)  # web scrape -> 60 requests per minute to be polite
     def fetch(
@@ -181,12 +185,19 @@ class HowLongToBeat(BaseSource):
         )
 
         # Make the request
-        search_result = self._make_request(game_name)
-        search_result = json.loads(search_result.text) if search_result else None
-
-        # if the search result is None, the request failed
-        if not search_result:
+        search_response = self._fetch_search_results(game_name)
+        if not search_response or not search_response.text:
             return self._build_error_result("Failed to fetch data.", verbose=verbose)
+
+        try:
+            search_result_raw = json.loads(search_response.text)
+        except json.JSONDecodeError:
+            return self._build_error_result("Failed to parse search response.", verbose=verbose)
+
+        if not isinstance(search_result_raw, dict):
+            return self._build_error_result("Unexpected search response format.", verbose=verbose)
+
+        search_result = cast(dict[str, Any], search_result_raw)
 
         # if the search result count is 0, then the game is not found
         if search_result["count"] == 0:
@@ -206,7 +217,7 @@ class HowLongToBeat(BaseSource):
         # repack / process the data if needed
         return {label: data.get(label, None) for label in self._valid_labels}
 
-    def _make_request(self, game_name: str, page: int = 1) -> requests.Response | None:  # type: ignore[override]
+    def _fetch_search_results(self, game_name: str, page: int = 1) -> requests.Response:
         """Send a web request to HowLongToBeat to fetch game data.
         Args:
             game_name (str): The name of the game to search for.
@@ -223,7 +234,10 @@ class HowLongToBeat(BaseSource):
 
         # if the api key is not found, then we cannot proceed
         if not self._search_info_data.api_key:
-            return None
+            return self._create_synthetic_response(
+                url=HowLongToBeat.BASE_URL,
+                reason="Missing HowLongToBeat API key.",
+            )
 
         search_url = HowLongToBeat.BASE_URL + "api/s/"
         if self._search_info_data.search_url:
@@ -231,21 +245,30 @@ class HowLongToBeat(BaseSource):
 
         search_url_with_key = search_url + self._search_info_data.api_key
         payload = HowLongToBeat._generate_data_payload(game_name, page, None)
-        response = requests.post(
+        response_with_key = requests.post(
             search_url_with_key, headers=search_headers, data=payload, timeout=60
         )
 
-        if response.status_code == 200:
-            return response
+        if response_with_key.status_code == 200:
+            return response_with_key
 
         # if the request failed, try to use the search URL with API key in the payload
         payload = HowLongToBeat._generate_data_payload(game_name, page, self._search_info_data)
-        response = requests.post(search_url, headers=search_headers, data=payload, timeout=60)
+        response_with_payload = requests.post(
+            search_url, headers=search_headers, data=payload, timeout=60
+        )
 
-        if response.status_code == 200:
-            return response
+        if response_with_payload.status_code == 200:
+            return response_with_payload
 
-        return None
+        return self._create_synthetic_response(
+            url=search_url,
+            reason=(
+                "Failed to fetch HowLongToBeat data: "
+                f"status {response_with_key.status_code} with key, "
+                f"status {response_with_payload.status_code} with payload."
+            ),
+        )
 
     @staticmethod
     def _get_title_request_headers() -> dict[str, Any]:
@@ -280,7 +303,7 @@ class HowLongToBeat(BaseSource):
             str: JSON string of the payload to be sent in the request.
 
         """
-        payload = {
+        payload: dict[str, Any] = {
             "searchType": "games",
             "searchTerms": game_name.split(),
             "searchPage": page,
@@ -307,6 +330,8 @@ class HowLongToBeat(BaseSource):
 
         # If api_key is passed add it to the dict
         if search_info and search_info.api_key:
-            payload["searchOptions"]["users"]["id"] = search_info.api_key
+            search_options = cast(dict[str, Any], payload["searchOptions"])
+            users_options = cast(dict[str, Any], search_options["users"])
+            users_options["id"] = search_info.api_key
 
         return json.dumps(payload)
