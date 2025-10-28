@@ -81,7 +81,7 @@ class TestHowLongToBeat:
         def mock_method(*args, **kwargs):
             return None
 
-        monkeypatch.setattr(HowLongToBeat, "_make_request", mock_method)
+        monkeypatch.setattr(HowLongToBeat, "_fetch_search_results", mock_method)
 
         source = HowLongToBeat()
         result = source.fetch(game_name="mock_data")

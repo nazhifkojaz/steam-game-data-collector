@@ -10,7 +10,7 @@ def mock_request_response(monkeypatch):
 
     def _patch_method(
         target_class,
-        method_name="_make_request",
+        method_name: str | None = None,
         status_code: int = 200,
         json_data: dict | None = None,
         text_data: str | None = None,
@@ -47,7 +47,18 @@ def mock_request_response(monkeypatch):
         else:
             mock_method = Mock(return_value=Response(status_code, json_data, text_data))
 
-        monkeypatch.setattr(target_class, method_name, mock_method)
+        target_method_names: list[str] = []
+        if method_name is not None:
+            target_method_names.append(method_name)
+        else:
+            if hasattr(target_class, "_fetch_search_results"):
+                target_method_names.append("_fetch_search_results")
+            target_method_names.append("_make_request")
+
+        for name in target_method_names:
+            if hasattr(target_class, name):
+                monkeypatch.setattr(target_class, name, mock_method)
+
         return mock_method
 
     return _patch_method
